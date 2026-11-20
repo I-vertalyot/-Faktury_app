@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Faktury</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@400;700&family=Playwrite+CZ:wght@300;400&family=Caveat:wght@500;700&family=Patrick+Hand&family=Kalam:wght@400;700&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* VOICE everyday money tool, tactile and calm, same family as Work days
+   IDEA the invoice is a kraft time card lying on a dark desk: punched days, red extra hours, a rubber stamp
+   PICTURE the live invoice card itself, edited in place, QR Platba and stamp on its foot
+   COLOUR desk #1B1F22, kraft #E8D4A3, ink #1D1B18, stamp red #A82614, highlighter yellow
+   TYPE Big Shoulders Stencil numerals, Archivo condensed labels, handwriting for names
+   LAYOUT nav row, card up to 1040px, actions, ledger; on a phone each line folds into two rows */
+:root{
+  color-scheme:dark;
+  --ink:#1D1B18;--soft:#4A4337;--rule:rgba(29,27,24,.32);--red:#A82614;--desk:#23282C;
+  --tab:#E2CB94;--deskink:#E3D3AE;--deskrule:rgba(226,203,148,.22);
+  --sans:"Archivo",system-ui,sans-serif;
+  --stencil:"Big Shoulders Stencil","Archivo",sans-serif;
+  --hand:"Shantell Sans","Segoe Print",cursive;--hs:.98;
+  --cols:116px minmax(0,1fr) 170px 40px;
+}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:#1B1F22;font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:clip}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.stencil{font-family:var(--stencil);font-weight:800;line-height:1}
+button{font:inherit;color:inherit}
+.desk{min-height:100vh;padding:18px max(24px,env(safe-area-inset-left)) 90px;display:flex;flex-direction:column;align-items:center;background:radial-gradient(ellipse 75% 55% at 50% 0%,#3B444A 0%,#262B2F 55%,#1B1F22 100%)}
+.wrap{width:100%;max-width:1040px}
+
+/* desk controls */
+.nav{display:flex;align-items:center;justify-content:center;gap:6px;padding:0 0 12px}
+.tab{appearance:none;display:inline-grid;place-items:center;width:48px;height:48px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;color:var(--tab)}
+.tab:hover{background:rgba(226,203,148,.12)}
+.tab:disabled{opacity:.3;cursor:default;background:transparent}
+.tab svg{width:26px;height:26px}
+.pill{appearance:none;white-space:nowrap;min-height:44px;padding:0 18px;border-radius:999px;cursor:pointer;border:1.5px solid rgba(226,203,148,.55);background:transparent;color:var(--tab);font:700 17px/1 var(--sans);font-stretch:80%}
+.pill:hover{background:rgba(226,203,148,.1)}
+.pill.solid{background:var(--tab);border-color:var(--tab);color:var(--ink)}
+.pill.solid:hover{background:#F1E2BA}
+.pill.warn{border-color:#F0A08F;color:#F0A08F}
+.pill:disabled{opacity:.6;cursor:progress}
+.nav .who{margin-left:auto}
+.note{margin:0 0 12px;text-align:center;color:var(--deskink);font:500 15px/1.4 var(--sans)}
+.note[hidden]{display:none}
+:focus-visible{outline:2.5px solid #F5C542;outline-offset:2px}
+
+/* the card */
+.card-wrap{position:relative;filter:drop-shadow(0 30px 34px rgba(0,0,0,.55)) drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+.card{position:relative;overflow:hidden;padding:34px 44px 30px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' seed='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .33  0 0 0 0 .18  0 0 0 .13 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),linear-gradient(180deg,#EFDFB5 0%,#E8D4A3 50%,#E1C990 100%);
+  clip-path:polygon(0 0,calc(100% - 48px) 0,100% 48px,100% 100%,0 100%)}
+.card.swap{animation:swap .28s ease-out}
+@keyframes swap{from{transform:translateY(8px) rotate(-.25deg);opacity:.35}to{transform:none;opacity:1}}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:18px;border-bottom:3px solid var(--ink)}
+.head h1{margin:0;font-size:20px;line-height:1;font-weight:700;font-stretch:85%}
+.period{margin:10px 0 0;font-size:36px;line-height:1.05;font-weight:900;font-stretch:62%;text-wrap:balance}
+.numbox{display:flex;align-items:stretch;border:2px solid var(--ink);flex:none;margin-right:28px}
+.nb-label{display:flex;flex-direction:column;justify-content:space-between;padding:8px 12px;border-right:2px solid var(--ink);font-size:13px;font-weight:700;font-stretch:75%}
+.nb-num{width:7.6ch;border:0;background:transparent;padding:4px 14px 0;font-size:56px;color:var(--ink);text-align:right}
+.nb-num:focus{outline:none;background:rgba(255,250,232,.45)}
+
+.fld{display:block;width:100%;border:0;border-bottom:1px dashed transparent;border-radius:0;background:transparent;color:var(--ink);font:400 17px/1.35 var(--sans);padding:3px 0}
+.fld:hover{border-bottom-color:var(--rule)}
+.fld:focus{outline:none;border-bottom-color:var(--ink);background:rgba(255,250,232,.35)}
+.fld::placeholder,.venue::placeholder{color:rgba(29,27,24,.38);opacity:1}
+.lbl{display:block;font-size:14px;font-weight:700;font-stretch:75%;color:var(--soft)}
+
+.parties{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-bottom:1.5px solid var(--ink)}
+.party{padding:16px 0 18px}
+.party+.party{padding-left:24px;border-left:1px solid var(--rule)}
+.party .lbl{display:flex;justify-content:space-between;align-items:center;min-height:22px}
+.edit{appearance:none;border:0;background:transparent;padding:4px 8px;margin:-4px -8px -4px 0;border-radius:6px;cursor:pointer;font:700 14px/1 var(--sans);font-stretch:80%;color:var(--red)}
+.edit:hover{background:rgba(168,38,20,.08)}
+.pname,.pline{display:block;width:100%;margin:0;padding:0;border:0;border-bottom:1px dashed transparent;border-radius:0;background:transparent;color:var(--ink)}
+.pname{margin:8px 0 4px;font:800 24px/1.1 var(--sans);font-stretch:80%}
+.pline{font:400 17px/1.4 var(--sans)}
+.pline.soft{color:var(--soft);font-size:15px;margin-top:4px}
+input.pname:hover,input.pline:hover,.idl:hover{border-bottom-color:var(--rule)}
+input.pname:focus,input.pline:focus,.idl:focus-within{outline:none;border-bottom-color:var(--ink);background:rgba(255,250,232,.35)}
+.pname::placeholder,.pline::placeholder,.idl input::placeholder{color:rgba(29,27,24,.38);opacity:1}
+.idl{display:flex;align-items:baseline;gap:.3em}
+.idl input{flex:1;min-width:0;padding:0;border:0;border-radius:0;background:transparent;font:inherit;color:inherit}
+.idl input:focus{outline:none}
+.addme{appearance:none;margin:10px 0 6px;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px dashed var(--red);background:rgba(255,250,232,.3);color:var(--red);font:700 17px/1 var(--sans);font-stretch:80%;cursor:pointer}
+
+.vwrap{position:relative;display:flex;align-items:center}
+.venue{width:auto;max-width:calc(100% + 5px);margin-left:-5px;border:0;border-radius:0;background:transparent;padding:6px 5px 2px;font:700 calc(22px * var(--hs))/1.25 var(--hand);color:var(--ink)}
+.venue.has{background:linear-gradient(100deg,rgba(255,224,60,0) 0,rgba(255,224,60,.78) 5px,rgba(255,216,40,.72) calc(100% - 5px),rgba(255,224,60,0) 100%) 0 78%/100% 58% no-repeat}
+.venue:focus{outline:none;box-shadow:inset 0 -1.5px 0 var(--ink)}
+.venue::-webkit-calendar-picker-indicator{display:none !important}
+.hl{position:absolute;left:-5px;top:0;z-index:0;max-width:calc(100% + 10px);padding:6px 5px 2px;overflow:hidden;white-space:pre;pointer-events:none;font:700 calc(22px * var(--hs))/1.25 var(--hand);color:transparent;
+  background:linear-gradient(100deg,rgba(255,224,60,0) 0,rgba(255,224,60,.78) 5px,rgba(255,216,40,.72) calc(100% - 5px),rgba(255,224,60,0) 100%) 0 78%/100% 58% no-repeat}
+.hl:empty{display:none}
+
+.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1.5px solid var(--ink)}
+.meta>div{padding:10px 0 10px 14px;border-left:1px solid var(--rule)}
+.meta>div:first-child{padding-left:0;border-left:0}
+.dfld{width:100%;border:0;border-radius:0;background:transparent;color:var(--ink);padding:4px 0 0;font:800 26px/1.1 var(--stencil)}
+.dfld:focus{outline:none;background:rgba(255,250,232,.45)}
+.dfld::-webkit-calendar-picker-indicator{opacity:.45;cursor:pointer}
+.mval{display:block;padding-top:4px;font:800 26px/1.1 var(--stencil)}
+.mval.sans{font:800 22px/1.25 var(--sans);font-stretch:80%;padding-top:6px}
+
+.subject{display:flex;align-items:baseline;gap:14px;padding:12px 0 4px}
+.subject .lbl{flex:none}
+.subject .fld{font-size:18px;font-weight:600;font-stretch:90%}
+
+.cols{display:grid;grid-template-columns:var(--cols);padding:12px 0 8px;border-bottom:1.5px solid var(--ink);font-size:14px;font-weight:700;font-stretch:75%}
+.cols span:nth-child(2){padding-left:16px}
+.cols span:nth-child(3){text-align:right;padding-right:4px}
+.rows{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:var(--cols);align-items:center;min-height:68px;border-bottom:1px solid var(--rule)}
+.row>*{min-width:0}
+.day{display:flex;align-items:baseline;gap:8px;padding-left:2px}
+.wd{font-size:14px;font-weight:700;font-stretch:80%;width:1.6em;flex:none}
+.dt{width:5.2ch;border:0;border-radius:0;background:transparent;padding:4px 0 2px;font:800 30px/1 var(--stencil);color:var(--ink)}
+.dt:focus{outline:none;background:rgba(255,250,232,.45)}
+.dt[aria-invalid=true]{color:var(--red)}
+.vcell{padding:0 16px;align-self:stretch;display:flex;align-items:center}
+.vcell .vwrap{flex:1}
+.desc{font:500 18px/1.3 var(--sans);font-stretch:90%}
+.days{display:flex;align-items:center;gap:2px;padding:0 6px 0 8px}
+.hole{appearance:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;background:transparent;cursor:pointer;border-radius:50%}
+.ring{position:relative;display:block;width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(29,27,24,.42);overflow:hidden;transition:border-color .15s}
+.hole:hover .ring{border-color:rgba(29,27,24,.85)}
+.punch{position:absolute;display:none;background:var(--desk)}
+.ring[data-fill="0.5"] .punch{display:block;left:-2px;top:-2px;width:16.5px;height:32px;box-shadow:inset 2px 3px 4px rgba(0,0,0,.8)}
+.ring[data-fill="1"]{border-color:var(--desk);background:var(--desk);box-shadow:inset 0 3px 5px rgba(0,0,0,.85),0 1px 0 rgba(255,250,232,.75)}
+.hole:active .ring{transform:scale(.92)}
+.dval{margin-left:auto;min-width:40px;text-align:right;font-size:28px}
+.dval.zero{opacity:.28}
+.extra{display:flex;align-items:center;gap:4px;padding:0 6px 0 12px}
+.xbtn{appearance:none;flex:none;display:grid;place-items:center;width:40px;height:40px;padding:0;cursor:pointer;background:transparent;border:1.5px solid rgba(168,38,20,.5);border-radius:7px}
+.xbtn:hover{background:rgba(168,38,20,.08);border-color:var(--red)}
+.xbtn:disabled{opacity:.3;cursor:default;background:transparent}
+.xbtn svg{width:14px;height:14px}
+.xlab{display:flex;align-items:baseline;gap:2px;color:var(--red);font-weight:700}
+.xh{width:2.2ch;border:0;border-bottom:1.5px dotted var(--red);border-radius:0;background:transparent;padding:4px 0 2px;text-align:right;font:800 28px/1 var(--stencil);color:var(--red)}
+.xh:focus{outline:none;background:rgba(255,250,232,.45)}
+.xh::placeholder{color:rgba(168,38,20,.4);opacity:1}
+.price{display:flex;align-items:baseline;justify-content:flex-end;gap:5px;padding-right:4px;font-size:26px;white-space:nowrap}
+.price small,.tprice small{font:700 14px var(--sans);font-stretch:80%}
+.price.nil{opacity:.3}
+.pin{width:6.5ch;border:0;border-bottom:1px dashed var(--rule);border-radius:0;background:transparent;text-align:right;padding:2px 0;font:800 26px/1 var(--stencil);color:var(--ink)}
+.pin:focus{outline:none;border-bottom-color:var(--ink);background:rgba(255,250,232,.45)}
+.del{appearance:none;justify-self:end;display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--soft);cursor:pointer;opacity:.5}
+.del:hover{opacity:1;background:rgba(29,27,24,.08)}
+.del svg{width:14px;height:14px}
+.add{display:flex;flex-wrap:wrap;gap:8px;padding:12px 0}
+.addb{appearance:none;min-height:40px;padding:0 14px;border-radius:999px;border:1.5px dashed rgba(29,27,24,.45);background:transparent;cursor:pointer;font:700 16px/1 var(--sans);font-stretch:80%;color:var(--ink)}
+.addb:hover{background:rgba(255,250,232,.4);border-style:solid}
+.totals{display:grid;grid-template-columns:var(--cols);align-items:baseline;padding:16px 0 12px;border-top:2px solid var(--ink)}
+.t-label{grid-column:1 / 3;font-size:24px;font-weight:800;font-stretch:70%}
+.t-days{padding-left:12px;font-size:36px;font-weight:900;white-space:nowrap}
+.t-days small{font:700 15px var(--sans);font-stretch:80%;margin-left:4px}
+.t-extra{padding-left:14px;color:var(--red);font-size:36px;font-weight:900}
+.t-extra small{font:700 16px var(--sans)}
+.tprice{grid-column:3 / 5;text-align:right;padding-right:4px;font-size:40px;font-weight:900;white-space:nowrap}
+.fillb{border-style:solid;border-color:var(--ink)}
+.fill{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;margin:0 0 14px;padding:14px 16px;border:1.5px dashed rgba(29,27,24,.4);border-radius:10px;background:rgba(255,250,232,.32)}
+.fill[hidden],.fill [hidden]{display:none}
+.fill label:not(.go){display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:700;font-stretch:80%;color:var(--soft)}
+.fill select{min-height:44px;max-width:100%;padding:0 10px;border:1.5px solid rgba(29,27,24,.35);border-radius:8px;background:rgba(255,250,232,.6);font:500 16px var(--sans);color:var(--ink)}
+.fill select:focus{outline:none;border-color:var(--ink)}
+.go{appearance:none;display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:999px;border:0;background:var(--ink);color:#F1E2BA;font:700 16px var(--sans);font-stretch:85%;cursor:pointer}
+.go:hover{background:#3A352C}
+.go:disabled{opacity:.4;cursor:default}
+#impFile:focus-visible+.drop-hint{outline:2.5px solid #F5C542;outline-offset:2px}
+.drop-hint{align-self:center;font-size:15px;color:var(--soft)}
+.fill p{flex-basis:100%;margin:0;font-size:15px;line-height:1.4;color:var(--soft)}
+.empty-rows{margin:0;padding:18px 0;border-bottom:1px solid var(--rule);color:var(--soft);font-size:16px}
+.empty-rows[hidden]{display:none}
+.card.dropping{outline:3px dashed var(--red);outline-offset:-12px}
+
+.foot{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:start;margin-top:22px;padding:20px 0 6px;border-top:1.5px solid var(--rule)}
+.qr{margin:0;width:150px}
+.qr svg{display:block;width:150px;height:150px}
+.qr figcaption{margin-top:6px;font-size:13px;font-weight:700;font-stretch:75%;color:var(--soft)}
+.qr .empty{display:grid;place-items:center;width:150px;height:150px;border:1.5px dashed rgba(29,27,24,.35);border-radius:6px;padding:12px;text-align:center;font-size:13px;line-height:1.35;color:var(--soft)}
+.pay{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:16px}
+.pay dt{font-size:14px;font-weight:700;font-stretch:75%;color:var(--soft);padding-top:2px}
+.pay dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.legal{margin:12px 0 0;font-size:15px;line-height:1.45;color:var(--soft)}
+.legal:empty{display:none}
+.sup-legal{margin-top:6px}
+.sup-legal .pline{font-size:15px;color:var(--soft)}
+.sup-legal b{color:var(--ink);font-weight:700}
+.stamp{position:absolute;right:-34px;bottom:-40px;width:210px;height:210px;color:var(--red);opacity:.8;transform:rotate(-14deg);mix-blend-mode:multiply;pointer-events:none}
+.stamp text{font-family:var(--stencil);font-weight:800;fill:currentColor}
+.paid{position:absolute;right:230px;top:-60px;padding:3px 12px 5px;border:4px double var(--red);border-radius:6px;color:var(--red);text-align:center;transform:rotate(-8deg);mix-blend-mode:multiply;opacity:.88;pointer-events:none}
+.paid b{display:block;font:900 30px/1 var(--stencil);letter-spacing:.02em}
+.paid span{font:700 13px var(--sans)}
+.paid[hidden]{display:none}
+
+/* actions + ledger on the desk */
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 0}
+.status{margin-left:auto;color:var(--deskink);font:500 14px/1.3 var(--sans);opacity:.8}
+.msg{width:100%;margin:2px 0 0;color:var(--deskink);font:500 15px/1.4 var(--sans)}
+.msg:empty{display:none}
+.msg.warn{color:#F0A08F}
+.ledger{margin-top:30px;padding-top:18px;border-top:1px solid var(--deskrule);color:var(--deskink)}
+.ledger h2{margin:0 0 4px;font:900 30px/1.05 var(--sans);font-stretch:62%;color:#F1E2BA}
+.sum{margin:0 0 14px;font-size:16px;line-height:1.45}
+.meter{height:8px;border-radius:4px;background:rgba(226,203,148,.15);overflow:hidden;margin:6px 0 2px;max-width:520px}
+.meter i{display:block;height:100%;background:var(--tab);border-radius:4px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-weight:700;font-stretch:80%;color:rgba(227,211,174,.7);padding:8px 10px 8px 0;border-bottom:1px solid var(--deskrule)}
+td{padding:4px 10px 4px 0;border-bottom:1px solid rgba(226,203,148,.1);white-space:nowrap}
+td.r,th.r{text-align:right}
+td.cl{white-space:normal;min-width:8em}
+tr.on td{background:rgba(226,203,148,.09)}
+.lk{appearance:none;min-height:40px;padding:0 8px;margin-left:-8px;border:0;border-radius:6px;background:transparent;cursor:pointer;font:800 22px/1 var(--stencil);color:#F1E2BA}
+.lk:hover{background:rgba(226,203,148,.12)}
+.st{font-weight:600}
+.st.ok{color:#B9D49A}
+.st.bad{color:#F0A08F}
+.st.dim{opacity:.6}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:999px;background:#F1E2BA;color:var(--ink);font:600 15px var(--sans);box-shadow:0 10px 30px rgba(0,0,0,.45);z-index:50}
+.toast[hidden]{display:none}
+.toast button{appearance:none;min-height:36px;padding:0 14px;border-radius:999px;border:1.5px solid var(--ink);background:transparent;cursor:pointer;font:700 15px var(--sans)}
+
+/* settings sheet */
+dialog{width:min(620px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:0;border:0;background:transparent;color:var(--ink)}
+dialog::backdrop{background:rgba(10,12,14,.66)}
+.sheet{padding:26px 30px 24px;background:linear-gradient(180deg,#EFDFB5,#E3CC96);clip-path:polygon(0 0,calc(100% - 34px) 0,100% 34px,100% 100%,0 100%)}
+.sheet h2{margin:0 0 4px;font:900 34px/1 var(--sans);font-stretch:62%}
+.sheet>p{margin:0 0 16px;color:var(--soft);font-size:15px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 16px}
+.grid .wide{grid-column:1 / -1}
+.grid>.hint{margin:-4px 0 0;font-size:14px;color:var(--soft)}
+.f label{display:block;margin-bottom:4px;font-size:14px;font-weight:700;font-stretch:80%;color:var(--soft)}
+.f input,.f select{width:100%;min-height:44px;padding:8px 10px;border:1.5px solid rgba(29,27,24,.35);border-radius:8px;background:rgba(255,250,232,.55);font:500 16px var(--sans);color:var(--ink)}
+.f input:focus,.f select:focus{outline:none;border-color:var(--ink);background:#FFF8E4}
+.f .hint{margin:4px 0 0;font-size:13px;color:var(--soft);overflow-wrap:anywhere}
+.f .hint.bad{color:var(--red)}
+.sheet .end{display:flex;justify-content:flex-end;margin-top:18px}
+.sheet .end .pill{color:var(--ink);border-color:var(--ink)}
+.sheet h3{grid-column:1 / -1;margin:8px 0 -4px;padding-top:10px;border-top:1px solid var(--rule);font:800 18px var(--sans);font-stretch:80%}
+
+@media (max-width:860px){
+  :root{--cols:96px minmax(0,1fr) 150px 36px}
+  .card{padding:28px 26px 24px}
+  .hole{width:38px;height:44px}
+  .xbtn{width:36px;height:36px}
+}
+@media (max-width:720px){
+  .desk{padding:10px 12px 60px}
+  .card{padding:22px 18px 18px;clip-path:polygon(0 0,calc(100% - 34px) 0,100% 34px,100% 100%,0 100%)}
+  .head{flex-wrap:wrap;gap:12px;padding-bottom:14px}
+  .numbox{margin-right:0}
+  .nb-num{font-size:42px;padding:2px 10px 0}
+  .period{font-size:30px}
+  .parties{grid-template-columns:minmax(0,1fr)}
+  .party+.party{padding-left:0;border-left:0;border-top:1px solid var(--rule)}
+  .meta{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .meta>div:nth-child(3){padding-left:0;border-left:0}
+  .meta>div:nth-child(n+3){border-top:1px solid var(--rule)}
+  .subject{flex-direction:column;gap:2px}
+  .cols{display:none}
+  .row{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"day v v" "price price del";column-gap:8px;padding:8px 0 4px;min-height:0}
+  .day{grid-area:day}.vcell{grid-area:v;padding:0 0 0 4px}.price{grid-area:price;justify-self:end;font-size:22px}
+  .days{grid-area:days;padding:0}.extra{grid-area:x;padding:0}.del{grid-area:del}
+  .dval{min-width:30px;font-size:24px}
+  .totals{display:flex;flex-wrap:wrap;column-gap:14px}
+  .t-label{width:100%}
+  .t-days,.t-extra{padding-left:0;font-size:30px}
+  .tprice{margin-left:auto;font-size:34px}
+  .foot{grid-template-columns:minmax(0,1fr);padding-right:0}
+  .dfld,.mval{font-size:22px}
+  .qr,.qr svg,.qr .empty{width:132px}.qr svg,.qr .empty{height:132px}
+  .paid{right:auto;left:150px;top:20px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .sheet{padding:22px 18px 20px}
+  .nav .who{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){.card.swap{animation:none}}
+</style>
+</head>
+<body>
+<div class="desk">
+<div class="wrap">
+  <nav class="nav" aria-label="Invoices">
+    <button type="button" class="tab" id="prev" aria-label="Older invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button type="button" class="pill solid" id="newBtn">New invoice</button>
+    <button type="button" class="tab" id="next" aria-label="Newer invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button type="button" class="pill who" id="setBtn">Your details</button>
+  </nav>
+  <p class="note" id="exNote" hidden>Example from your week 47 card. Edit it, or start a new invoice.</p>
+
+  <div class="card-wrap">
+  <article class="card" id="card" lang="cs" aria-label="Invoice">
+    <header class="head">
+      <div>
+        <h1>Faktura</h1>
+        <p class="period" id="period"></p>
+      </div>
+      <div class="numbox">
+        <div class="nb-label" aria-hidden="true"><span>Faktura</span><span>č.</span></div>
+        <label class="sr" for="num">Invoice number</label>
+        <input class="nb-num stencil" id="num" inputmode="numeric" autocomplete="off" maxlength="12">
+      </div>
+    </header>
+
+    <section class="parties">
+      <div class="party">
+        <div class="lbl"><span>Dodavatel</span><button type="button" class="edit" data-open="set">Edit</button></div>
+        <div id="sup"></div>
+      </div>
+      <div class="party">
+        <div class="lbl"><label for="cliN">Odběratel</label></div>
+        <input class="pname" id="cliN" list="cliList" autocomplete="off" placeholder="Komu fakturujete">
+        <label class="sr" for="cliA1">Client street</label><input class="pline" id="cliA1" autocomplete="off" placeholder="Ulice a číslo">
+        <label class="sr" for="cliA2">Client town</label><input class="pline" id="cliA2" autocomplete="off" placeholder="PSČ a obec">
+        <label class="pline idl">IČO <input id="cliIco" inputmode="numeric" autocomplete="off" placeholder="neuvedeno"></label>
+        <label class="pline idl">DIČ <input id="cliDic" autocomplete="off" placeholder="neuvedeno"></label>
+      </div>
+    </section>
+
+    <section class="meta">
+      <div><label class="lbl" for="iss">Datum vystavení</label><input class="dfld" type="date" id="iss" required></div>
+      <div><label class="lbl" for="due">Datum splatnosti</label><input class="dfld" type="date" id="due" required></div>
+      <div><span class="lbl">Forma úhrady</span><span class="mval sans">Převodem</span></div>
+    </section>
+
+    <div class="subject"><label class="lbl" for="sub">Předmět plnění</label><input class="fld" id="sub" autocomplete="off" placeholder="Např. Zvuková technika – listopad 2026"></div>
+
+    <div class="cols" aria-hidden="true"><span>Den</span><span>Místo / popis</span><span>Cena</span><span></span></div>
+    <ol class="rows" id="rows"></ol>
+    <p class="empty-rows" id="noRows" lang="en" hidden>No lines yet. Import the days you logged, or add them by hand.</p>
+    <div class="add">
+      <button type="button" class="addb fillb" id="impBtn" aria-expanded="false" aria-controls="imp" lang="en">Import from Work days</button>
+      <button type="button" class="addb" id="addDay">+ Pracovní den</button>
+      <button type="button" class="addb" id="addItem">+ Jiná položka</button>
+    </div>
+    <div class="fill" id="imp" lang="en" hidden>
+      <label class="go" for="impFile">Choose file</label><input class="sr" type="file" id="impFile" accept=".csv,text/csv,text/plain">
+      <span class="drop-hint">or drop it on the card</span>
+      <label id="iVenueWrap" hidden>Venue<select id="iVenue"></select></label>
+      <button type="button" class="go" id="iGo" hidden>Add these days</button>
+      <p id="iInfo" role="status">In Work days, open the ⋯ menu, pick the month and choose “Download for Faktury”. Then choose that file here.</p>
+    </div>
+    <div class="totals">
+      <span class="t-label">Celkem k úhradě</span>
+      <span class="tprice stencil" id="tPrice"></span>
+    </div>
+
+    <footer class="foot">
+      <figure class="qr" id="qr"></figure>
+      <div>
+        <dl class="pay" id="pay"></dl>
+        <p class="legal" id="legal"></p>
+      </div>
+      <div class="paid" id="paidStamp" hidden><b>ZAPLACENO</b><span id="paidDate"></span></div>
+    </footer>
+  </article>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="pill solid" id="pdfBtn">Download PDF</button>
+    <button type="button" class="pill" id="paidBtn">Mark as paid</button>
+    <button type="button" class="pill" id="dupBtn">Duplicate</button>
+    <button type="button" class="pill" id="delBtn">Delete</button>
+    <span class="status" id="status" role="status"></span>
+    <p class="msg" id="msg" role="status"></p>
+  </div>
+
+  <section class="ledger" aria-labelledby="ledH">
+    <h2 id="ledH">Invoices</h2>
+    <p class="sum" id="sum"></p>
+    <div class="scroll"><table>
+      <thead><tr><th>No.</th><th>Client</th><th>Issued</th><th>Due</th><th class="r">Amount</th><th>Status</th></tr></thead>
+      <tbody id="ledger"></tbody>
+    </table></div>
+  </section>
+</div>
+</div>
+
+<datalist id="cliList"></datalist>
+<datalist id="venueList"></datalist>
+
+<dialog id="dlg" aria-labelledby="setH">
+  <form class="sheet" id="setForm" method="dialog">
+    <h2 id="setH">Your details</h2>
+    <p>Printed on every invoice as the supplier. Saved as you type.</p>
+    <div class="grid">
+      <div class="f wide"><label for="s-name">Name</label><input id="s-name" data-k="name" autocomplete="name" placeholder="Jméno a příjmení"></div>
+      <div class="f"><label for="s-a1">Street and number</label><input id="s-a1" data-k="a1" autocomplete="address-line1"></div>
+      <div class="f"><label for="s-a2">Postcode and town</label><input id="s-a2" data-k="a2" autocomplete="address-level2" placeholder="120 00 Praha 2"></div>
+      <div class="f"><label for="s-ico">IČO</label><input id="s-ico" data-k="ico" inputmode="numeric" maxlength="8"><p class="hint bad" id="icoHint" hidden>IČO has 8 digits and this one fails its check digit.</p></div>
+      <div class="f"><label for="s-acc">Bank account</label><input id="s-acc" data-k="acc" autocomplete="off" placeholder="123456789/0800 or IBAN"><p class="hint" id="accHint"></p></div>
+      <div class="f wide"><label for="s-office">Trade licence office (optional)</label><input id="s-office" data-k="office" placeholder="Úřad městské části Praha 3"></div>
+      <div class="f"><label for="s-email">Email (optional)</label><input id="s-email" data-k="email" type="email" autocomplete="email"></div>
+      <div class="f"><label for="s-phone">Phone (optional)</label><input id="s-phone" data-k="phone" type="tel" autocomplete="tel"></div>
+      <h3>Rates and payment</h3>
+      <p class="hint wide" id="rateNote">Used to price the days you import from Work days. A new work day line starts at the day rate.</p>
+      <div class="f"><label for="s-rd">Day rate (Kč)</label><input id="s-rd" data-k="rd" data-n="1" inputmode="numeric"></div>
+      <div class="f"><label for="s-rh">Extra hour rate (Kč)</label><input id="s-rh" data-k="rh" data-n="1" inputmode="numeric"></div>
+      <div class="f"><label for="s-due">Payment due after (days)</label><input id="s-due" data-k="dueDays" data-n="1" inputmode="numeric"></div>
+      <div class="f"><label for="s-hand">Handwriting</label><select id="s-hand" data-k="hand"></select></div>
+      <div class="f wide"><label for="s-paper">PDF paper</label><select id="s-paper" data-k="paper"><option value="kraft">Kraft card, like the screen</option><option value="white">White, for printing</option></select></div>
+    </div>
+    <div class="end"><button class="pill" value="done">Done</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden><span id="toastTxt"></span><button type="button" id="undo">Undo</button></div>
+
+<script>
+/* QR code (byte mode, error correction M) + Czech payment helpers. */
+var QR = (function (){
+  var ECC = [-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28];
+  var BLK = [-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49];
+  function rawModules(v){
+    var r = (16 * v + 128) * v + 64;
+    if (v >= 2){ var n = Math.floor(v / 7) + 2; r -= (25 * n - 10) * n - 55; if (v >= 7) r -= 36; }
+    return r;
+  }
+  function dataCw(v){ return Math.floor(rawModules(v) / 8) - ECC[v] * BLK[v]; }
+  function gmul(x, y){
+    var z = 0;
+    for (var i = 7; i >= 0; i--){ z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; }
+    return z & 255;
+  }
+  function rsDiv(deg){
+    var r = []; for (var i = 0; i < deg; i++) r.push(0);
+    r[deg - 1] = 1;
+    var root = 1;
+    for (i = 0; i < deg; i++){
+      for (var j = 0; j < r.length; j++){ r[j] = gmul(r[j], root); if (j + 1 < r.length) r[j] ^= r[j + 1]; }
+      root = gmul(root, 2);
+    }
+    return r;
+  }
+  function rsRem(data, div){
+    var r = div.map(function (){ return 0; });
+    data.forEach(function (b){
+      var f = b ^ r.shift(); r.push(0);
+      div.forEach(function (c, i){ r[i] ^= gmul(c, f); });
+    });
+    return r;
+  }
+  function alignPos(v){
+    if (v === 1) return [];
+    var n = Math.floor(v / 7) + 2;
+    var step = v === 32 ? 26 : Math.ceil((v * 4 + 4) / (n * 2 - 2)) * 2;
+    var res = [6];
+    for (var p = v * 4 + 10; res.length < n; p -= step) res.splice(1, 0, p);
+    return res;
+  }
+  function bit(x, i){ return ((x >>> i) & 1) !== 0; }
+  var MASKS = [
+    function (x, y){ return (x + y) % 2 === 0; },
+    function (x, y){ return y % 2 === 0; },
+    function (x){ return x % 3 === 0; },
+    function (x, y){ return (x + y) % 3 === 0; },
+    function (x, y){ return (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0; },
+    function (x, y){ return x * y % 2 + x * y % 3 === 0; },
+    function (x, y){ return (x * y % 2 + x * y % 3) % 2 === 0; },
+    function (x, y){ return ((x + y) % 2 + x * y % 3) % 2 === 0; }
+  ];
+
+  function encode(text){
+    var bytes = Array.from(new TextEncoder().encode(text));
+    var v, cc;
+    for (v = 1; v <= 40; v++){
+      cc = v < 10 ? 8 : 16;
+      if (4 + cc + bytes.length * 8 <= dataCw(v) * 8) break;
+    }
+    if (v > 40) throw new Error("too long");
+    var bits = [];
+    function put(val, n){ for (var i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); }
+    put(4, 4); put(bytes.length, cc);
+    bytes.forEach(function (b){ put(b, 8); });
+    var cap = dataCw(v) * 8;
+    put(0, Math.min(4, cap - bits.length));
+    put(0, (8 - bits.length % 8) % 8);
+    for (var pad = 0xEC; bits.length < cap; pad ^= 0xEC ^ 0x11) put(pad, 8);
+    var data = [];
+    for (var i = 0; i < bits.length; i += 8){ var b = 0; for (var k = 0; k < 8; k++) b = (b << 1) | bits[i + k]; data.push(b); }
+
+    // split into blocks, add error correction, interleave
+    var nb = BLK[v], el = ECC[v], raw = Math.floor(rawModules(v) / 8);
+    var nShort = nb - raw % nb, shortLen = Math.floor(raw / nb);
+    var div = rsDiv(el), blocks = [], at = 0;
+    for (i = 0; i < nb; i++){
+      var dat = data.slice(at, at + shortLen - el + (i < nShort ? 0 : 1));
+      at += dat.length;
+      var ecc = rsRem(dat, div);
+      if (i < nShort) dat.push(0);
+      blocks.push(dat.concat(ecc));
+    }
+    var cw = [];
+    for (i = 0; i < blocks[0].length; i++)
+      for (var j = 0; j < nb; j++)
+        if (i !== shortLen - el || j >= nShort) cw.push(blocks[j][i]);
+
+    var size = v * 4 + 17, mod = [], fn = [];
+    for (i = 0; i < size; i++){ mod.push(new Array(size).fill(false)); fn.push(new Array(size).fill(false)); }
+    function setF(x, y, d){ mod[y][x] = d; fn[y][x] = true; }
+    for (i = 0; i < size; i++){ setF(6, i, i % 2 === 0); setF(i, 6, i % 2 === 0); }
+    [[3, 3], [size - 4, 3], [3, size - 4]].forEach(function (c){
+      for (var dy = -4; dy <= 4; dy++) for (var dx = -4; dx <= 4; dx++){
+        var d = Math.max(Math.abs(dx), Math.abs(dy)), xx = c[0] + dx, yy = c[1] + dy;
+        if (xx >= 0 && xx < size && yy >= 0 && yy < size) setF(xx, yy, d !== 2 && d !== 4);
+      }
+    });
+    var ap = alignPos(v), na = ap.length;
+    for (i = 0; i < na; i++) for (j = 0; j < na; j++){
+      if ((i === 0 && j === 0) || (i === 0 && j === na - 1) || (i === na - 1 && j === 0)) continue;
+      for (var ay = -2; ay <= 2; ay++) for (var ax = -2; ax <= 2; ax++)
+        setF(ap[i] + ax, ap[j] + ay, Math.max(Math.abs(ax), Math.abs(ay)) !== 1);
+    }
+    function drawFormat(mask){
+      var d = (0 << 3) | mask, r = d;
+      for (var n = 0; n < 10; n++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+      var b = ((d << 10) | r) ^ 0x5412;
+      for (n = 0; n <= 5; n++) setF(8, n, bit(b, n));
+      setF(8, 7, bit(b, 6)); setF(8, 8, bit(b, 7)); setF(7, 8, bit(b, 8));
+      for (n = 9; n < 15; n++) setF(14 - n, 8, bit(b, n));
+      for (n = 0; n < 8; n++) setF(size - 1 - n, 8, bit(b, n));
+      for (n = 8; n < 15; n++) setF(8, size - 15 + n, bit(b, n));
+      setF(8, size - 8, true);
+    }
+    drawFormat(0);
+    if (v >= 7){
+      var r = v;
+      for (i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25);
+      var vb = (v << 12) | r;
+      for (i = 0; i < 18; i++){ var a = size - 11 + i % 3, bb = Math.floor(i / 3); setF(a, bb, bit(vb, i)); setF(bb, a, bit(vb, i)); }
+    }
+    var bi = 0;
+    for (var right = size - 1; right >= 1; right -= 2){
+      if (right === 6) right = 5;
+      for (var vert = 0; vert < size; vert++) for (k = 0; k < 2; k++){
+        var x = right - k, up = ((right + 1) & 2) === 0, y = up ? size - 1 - vert : vert;
+        if (!fn[y][x] && bi < cw.length * 8){ mod[y][x] = bit(cw[bi >>> 3], 7 - (bi & 7)); bi++; }
+      }
+    }
+
+    function applyMask(m){
+      for (var y = 0; y < size; y++) for (var x = 0; x < size; x++)
+        if (!fn[y][x] && MASKS[m](x, y)) mod[y][x] = !mod[y][x];
+    }
+    function penalty(){
+      var p = 0, dark = 0, y, x, run, c;
+      function lines(get){
+        for (var a = 0; a < size; a++){
+          run = 1; c = get(a, 0);
+          var seq = [c ? 1 : 0];
+          for (var b = 1; b < size; b++){
+            var v2 = get(a, b); seq.push(v2 ? 1 : 0);
+            if (v2 === c){ run++; if (run === 5) p += 3; else if (run > 5) p++; }
+            else { c = v2; run = 1; }
+          }
+          var s = "0000" + seq.join("") + "0000";
+          var m1 = s.split("10111010000").length - 1, m2 = s.split("00001011101").length - 1;
+          p += 40 * (m1 + m2);
+        }
+      }
+      lines(function (a, b){ return mod[a][b]; });
+      lines(function (a, b){ return mod[b][a]; });
+      for (y = 0; y < size - 1; y++) for (x = 0; x < size - 1; x++){
+        c = mod[y][x];
+        if (c === mod[y][x + 1] && c === mod[y + 1][x] && c === mod[y + 1][x + 1]) p += 3;
+      }
+      for (y = 0; y < size; y++) for (x = 0; x < size; x++) if (mod[y][x]) dark++;
+      var total = size * size;
+      p += Math.floor(Math.abs(dark * 20 - total * 10) / total) * 10;
+      return p;
+    }
+    var best = 0, bestP = Infinity;
+    for (var m = 0; m < 8; m++){
+      applyMask(m); drawFormat(m);
+      var pen = penalty();
+      if (pen < bestP){ bestP = pen; best = m; }
+      applyMask(m);
+    }
+    applyMask(best); drawFormat(best);
+    return { size: size, get: function (x, y){ return mod[y][x]; } };
+  }
+
+  function svgPath(q){
+    var d = "";
+    for (var y = 0; y < q.size; y++) for (var x = 0; x < q.size; x++)
+      if (q.get(x, y)) d += "M" + x + " " + y + "h1v1h-1z";
+    return d;
+  }
+  return { encode: encode, svgPath: svgPath };
+})();
+
+var Pay = (function (){
+  function mod97(s){ var r = 0; for (var i = 0; i < s.length; i++) r = (r * 10 + (s.charCodeAt(i) - 48)) % 97; return r; }
+  function weightsOk(digits, w){
+    var s = 0, d = digits.padStart(w.length, "0");
+    for (var i = 0; i < w.length; i++) s += (+d[i]) * w[i];
+    return s % 11 === 0;
+  }
+  // "19-2000145399/0800" -> { iban, ok }
+  function parseAccount(txt){
+    var t = String(txt || "").replace(/\s+/g, "").toUpperCase();
+    if (!t) return null;
+    if (/^CZ\d{22}$/.test(t)){
+      var okI = mod97(t.slice(4) + "1235" + t.slice(2, 4)) === 1;
+      return { iban: t, ok: okI };
+    }
+    var m = /^(?:(\d{1,6})-)?(\d{2,10})\/(\d{4})$/.exec(t);
+    if (!m) return { iban: "", ok: false };
+    var pre = m[1] || "", num = m[2], bank = m[3];
+    var bban = bank + pre.padStart(6, "0") + num.padStart(10, "0");
+    var chk = 98 - mod97(bban + "123500");
+    var ok = weightsOk(pre, [10, 5, 8, 4, 2, 1]) && weightsOk(num, [6, 3, 7, 9, 10, 5, 8, 4, 2, 1]);
+    return { iban: "CZ" + String(chk).padStart(2, "0") + bban, ok: ok };
+  }
+  function groupIban(i){ return String(i || "").replace(/(.{4})/g, "$1 ").trim(); }
+  function ascii(s){
+    return String(s || "").replace(/[–—]/g, "-").normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[*]/g, "").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim();
+  }
+  // QR Platba (SPAYD 1.0), keys in alphabetical order
+  function spayd(o){
+    var parts = ["SPD", "1.0", "ACC:" + o.iban, "AM:" + Number(o.amount).toFixed(2), "CC:CZK"];
+    if (o.due) parts.push("DT:" + o.due.replace(/-/g, ""));
+    if (o.msg) parts.push("MSG:" + ascii(o.msg).slice(0, 60));
+    if (o.name) parts.push("RN:" + ascii(o.name).slice(0, 35));
+    if (o.vs) parts.push("X-VS:" + String(o.vs).replace(/\D/g, "").slice(0, 10));
+    return parts.join("*");
+  }
+  return { parseAccount: parseAccount, groupIban: groupIban, spayd: spayd };
+})();
+
+
+</script>
+<script>
+{
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const MON_GEN = ["ledna","února","března","dubna","května","června","července","srpna","září","října","listopadu","prosince"];
+  const MON_NOM = ["Leden","Únor","Březen","Duben","Květen","Červen","Červenec","Srpen","Září","Říjen","Listopad","Prosinec"];
+  const MON_EN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const WD = ["Ne","Po","Út","St","Čt","Pá","So"];
+  const HANDS = [
+    { id: "round", name: "Rounded", fam: '"Shantell Sans"', hs: 0.98 },
+    { id: "cz", name: "Czech school", fam: '"Playwrite CZ"', hs: 1 },
+    { id: "quick", name: "Quick note", fam: '"Caveat"', hs: 1.32 },
+    { id: "neat", name: "Neat print", fam: '"Patrick Hand"', hs: 1.14 },
+    { id: "note", name: "Notebook", fam: '"Kalam"', hs: 1.04 },
+    { id: "type", name: "Typewriter", fam: '"Courier Prime"', hs: 1.02 }
+  ];
+  const DEF = { name: "", a1: "", a2: "", ico: "", acc: "", office: "", email: "", phone: "", rd: 5000, rh: 400, dueDays: 14, hand: "round", paper: "kraft" };
+  const VAT_LIMIT = 2000000, LS = "faktury.v1";
+
+  let S = Object.assign({}, DEF), INV = {}, cur = null, draft = null, exampleId = null;
+
+  /* ---------- dates and numbers ---------- */
+  const pad = (n) => String(n).padStart(2, "0");
+  const iso = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const fromIso = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+  const dm = (s) => { const d = fromIso(s); return d ? d.getDate() + "." + (d.getMonth() + 1) + "." : ""; };
+  const dmy = (s) => { const d = fromIso(s); return d ? d.getDate() + ". " + (d.getMonth() + 1) + ". " + d.getFullYear() : ""; };
+  const enDate = (s) => { const d = fromIso(s); if (!d) return "—"; return d.getDate() + " " + MON_EN[d.getMonth()] + (d.getFullYear() !== today().getFullYear() ? " " + d.getFullYear() : ""); };
+  function parseDM(t, ref){
+    const m = /^\s*(\d{1,2})\s*[.\/-]\s*(\d{1,2})\s*\.?\s*(\d{4})?\s*$/.exec(t || "");
+    if (!m) return null;
+    const r = fromIso(ref) || today();
+    const y = m[3] ? +m[3] : r.getFullYear();
+    let d = new Date(y, +m[2] - 1, +m[1]);
+    if (d.getMonth() !== +m[2] - 1 || d.getDate() !== +m[1]) return null;
+    if (!m[3] && d - r > 60 * 864e5) d = new Date(y - 1, +m[2] - 1, +m[1]);
+    return iso(d);
+  }
+  const grp = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  function money(n){
+    n = Math.round((+n || 0) * 100) / 100;
+    const neg = n < 0; n = Math.abs(n);
+    const i = Math.floor(n), dec = Math.round((n - i) * 100);
+    return (neg ? "−" : "") + grp(i) + (dec ? "," + pad(dec) : "");
+  }
+  const num1 = (n) => String(Math.round(n * 100) / 100).replace(".", ",");
+  const daysCs = (n) => n === 1 ? "den" : n % 1 ? "dne" : (n >= 2 && n <= 4) ? "dny" : "dní";
+  function parseMoney(t){
+    const s = String(t).replace(/[\s ]/g, "").replace(",", ".");
+    if (s === "") return 0;
+    const n = Number(s);
+    return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+  }
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const hand = () => HANDS.find((h) => h.id === S.hand) || HANDS[0];
+
+  /* ---------- invoice model ---------- */
+  const inv = () => INV[cur];
+  const linePrice = (l) => +l.p || 0;
+  function totals(i){
+    let p = 0;
+    i.lines.forEach((l) => { p += linePrice(l); });
+    return { p: Math.round(p * 100) / 100 };
+  }
+  const vsOf = (i) => String(i.num || "").replace(/\D/g, "").slice(-10);
+  const sorted = () => Object.values(INV).sort((a, b) =>
+    String(b.num).localeCompare(String(a.num), undefined, { numeric: true }) || String(b.iss).localeCompare(String(a.iss)));
+  function nextNum(y){
+    let max = 0;
+    Object.values(INV).forEach((i) => { const m = new RegExp("^" + y + "(\\d{3,})$").exec(i.num || ""); if (m) max = Math.max(max, +m[1]); });
+    return y + String(max + 1).padStart(3, "0");
+  }
+  function period(i){
+    const ds = i.lines.map((l) => l.dt).filter(Boolean).sort();
+    if (!ds.length){ const d = fromIso(i.iss) || today(); return MON_NOM[d.getMonth()] + " " + d.getFullYear(); }
+    const a = fromIso(ds[0]), b = fromIso(ds[ds.length - 1]);
+    if (+a === +b) return a.getDate() + ". " + MON_GEN[a.getMonth()] + " " + a.getFullYear();
+    if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()) return a.getDate() + ".–" + b.getDate() + ". " + MON_GEN[b.getMonth()] + " " + b.getFullYear();
+    if (a.getFullYear() === b.getFullYear()) return a.getDate() + ". " + MON_GEN[a.getMonth()] + " – " + b.getDate() + ". " + MON_GEN[b.getMonth()] + " " + b.getFullYear();
+    return dmy(ds[0]) + " – " + dmy(ds[ds.length - 1]);
+  }
+  // a line is a date, a venue or description, and a price; older lines that kept days and extra hours are priced once with the invoice's rates
+  function normLine(l, rd, rh){
+    l = l && typeof l === "object" ? l : {};
+    const k = l.k === "i" ? "i" : "d";
+    const old = k === "d" && ("d" in l || "x" in l);
+    const p = old ? (+l.d || 0) * (rd == null ? DEF.rd : rd) + (+l.x || 0) * (rh == null ? DEF.rh : rh) : +l.p || 0;
+    return { id: typeof l.id === "string" ? l.id : uid(), k, dt: fromIso(l.dt) ? l.dt : "", v: typeof l.v === "string" ? l.v.slice(0, 120) : "",
+      p: Math.max(0, Math.round(p * 100) / 100) };
+  }
+  function normInv(o, id){
+    o = o && typeof o === "object" ? o : {};
+    const c = o.cli && typeof o.cli === "object" ? o.cli : {};
+    const s = (v) => typeof v === "string" ? v : "";
+    const rd = isFinite(+o.rd) ? +o.rd : DEF.rd, rh = isFinite(+o.rh) ? +o.rh : DEF.rh;
+    return { id, num: s(o.num), iss: fromIso(o.iss) ? o.iss : iso(today()), due: fromIso(o.due) ? o.due : iso(addDays(today(), 14)), sub: s(o.sub),
+      cli: { n: s(c.n), a1: s(c.a1), a2: s(c.a2), ico: s(c.ico), dic: s(c.dic) },
+      rd, rh,
+      lines: Array.isArray(o.lines) ? o.lines.slice(0, 80).map((l) => normLine(l, rd, rh)) : [], paid: fromIso(o.paid) ? o.paid : null, ts: +o.ts || 0 };
+  }
+  function plain(i){ const o = JSON.parse(JSON.stringify(i)); delete o.id; return o; }
+  function lastVenue(i){ for (let k = i.lines.length - 1; k >= 0; k--) if (i.lines[k].k === "d" && i.lines[k].v) return i.lines[k].v; return i.cli.n; }
+  function newInvoice(){
+    const t = today(), last = sorted().find((i) => i.id !== exampleId);
+    return normInv({ num: nextNum(t.getFullYear()), iss: iso(t), due: iso(addDays(t, S.dueDays)), sub: "",
+      cli: last ? Object.assign({}, last.cli) : {}, rd: S.rd, rh: S.rh,
+      lines: [] }, "inv-" + uid());
+  }
+  function exampleInvoice(){
+    const t = today();
+    return normInv({ num: nextNum(t.getFullYear()), iss: iso(t), due: iso(addDays(t, S.dueDays)), sub: "Práce dle výkazu – listopad 2026",
+      cli: { n: "Maskova" }, rd: S.rd, rh: S.rh,
+      lines: [{ k: "d", dt: "2026-11-17", v: "Maskova", p: 5000 }, { k: "d", dt: "2026-11-18", v: "Maskova", p: 8300 }] }, "inv-" + uid());
+  }
+
+  /* ---------- storage: your account, or this browser ---------- */
+  let col = null, mode = "local", ready = false, problem = "";
+  const dirty = new Map(), timers = {};
+  let ver = 0;
+  function lsLoad(){ try { return JSON.parse(localStorage.getItem(LS) || "null"); } catch (e){ return undefined; } }
+  function lsSave(){
+    const out = { settings: S, inv: {} };
+    Object.values(INV).forEach((i) => { if (i.id !== draft) out.inv[i.id] = plain(i); });
+    try { localStorage.setItem(LS, JSON.stringify(out)); } catch (e){ if (mode === "local") mode = "memory"; }
+  }
+  function touch(id){
+    lsSave();
+    if (!col) return status();
+    dirty.set(id, ++ver);
+    clearTimeout(timers[id]);
+    timers[id] = setTimeout(() => push(id), 450);
+    status();
+  }
+  function push(id){
+    if (!col || !ready) return;
+    const v = dirty.get(id);
+    const data = id === "settings" ? S : INV[id];
+    let p;
+    try { p = data ? col.doc(id).set(id === "settings" ? Object.assign({}, S) : plain(data)) : col.doc(id).delete(); }
+    catch (e){ p = Promise.reject(e); }
+    p.then(() => { if (dirty.get(id) === v) dirty.delete(id); problem = ""; status(); },
+      () => { problem = "Couldn't save the last change. Edit again to retry"; status(); });
+  }
+  function status(){
+    let t = "";
+    if (problem) t = problem;
+    else if (mode === "account") t = !ready ? "Connecting to your account…" : dirty.size ? "Saving…" : "Saved to your account";
+    else if (mode === "local") t = "Saved in this browser";
+    else t = "Not saved: this browser blocks storage";
+    $("status").textContent = t;
+  }
+  function getClaude(ms){
+    return new Promise((res) => {
+      const t0 = Date.now();
+      (function poll(){
+        const c = window.claude;
+        if (c && typeof c.use === "function") return res(c);
+        if (Date.now() - t0 > ms) return res(null);
+        setTimeout(poll, 100);
+      })();
+    });
+  }
+  function connect(){
+    if (window.top === window.self) return status();
+    getClaude(2500).then((c) => {
+      if (!c) return status();
+      return Promise.all([c.use("db").catch(() => null), c.use("user").catch(() => null)]).then(([db, user]) => {
+        if (!db || !user) return status();
+        return Promise.resolve(user.id()).catch(() => null).then((id) => {
+          if (!id) return status();
+          try { col = db.collection("data/users/" + id); } catch (e){ col = null; return status(); }
+          mode = "account"; status(); subscribe();
+        });
+      });
+    }).catch(() => status());
+  }
+  function subscribe(){
+    const seen = new Set();
+    const timer = setTimeout(() => { if (!ready){ problem = "Your account isn't answering. Changes stay in this browser for now"; status(); } }, 10000);
+    col.onSnapshot((snap) => {
+      let changed = false;
+      snap.docChanges().forEach((ch) => {
+        const id = ch.doc.id;
+        seen.add(id);
+        if (dirty.has(id)) return;
+        if (ch.type === "removed"){ if (INV[id]){ delete INV[id]; changed = true; } return; }
+        const d = ch.doc.data();
+        if (id === "settings"){
+          const next = Object.assign({}, DEF, d);
+          if (JSON.stringify(next) !== JSON.stringify(S)){ S = next; changed = true; }
+        } else if (/^inv-/.test(id)){
+          const n = normInv(d, id);
+          if (!INV[id] || JSON.stringify(plain(n)) !== JSON.stringify(plain(INV[id]))){ INV[id] = n; changed = true; }
+        }
+      });
+      if (!snap.metadata.fromCache && !ready){
+        ready = true; problem = ""; clearTimeout(timer);
+        Object.keys(INV).forEach((id) => { if (!seen.has(id) && id !== draft) touch(id); });
+        if (!seen.has("settings") && JSON.stringify(S) !== JSON.stringify(DEF)) touch("settings");
+        dirty.forEach((v, id) => push(id));
+      }
+      if (changed){
+        if (exampleId && Object.keys(INV).some((id) => id !== exampleId)){ delete INV[exampleId]; if (draft === exampleId) draft = null; if (cur === exampleId) cur = null; exampleId = null; }
+        if (!INV[cur]) cur = (sorted()[0] || {}).id || null;
+        if (!cur) startExample();
+        lsSave(); applyHand(); keepFocus(renderCard);
+      }
+      status();
+    }, () => { clearTimeout(timer); col = null; mode = "local"; problem = "Saving to your account stopped. Changes stay in this browser"; status(); });
+  }
+
+  /* ---------- rendering ---------- */
+  const rowsEl = $("rows");
+  const ICON_X = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  function wdOf(s){ const d = fromIso(s); return d ? WD[d.getDay()] : ""; }
+  function lineHtml(l){
+    const id = l.id;
+    const day = `<div class="day"><span class="wd" id="wd-${id}">${wdOf(l.dt)}</span><label class="sr" for="dt-${id}">Date</label><input class="dt" id="dt-${id}" data-f="dt" value="${esc(dm(l.dt))}" placeholder="d.m." autocomplete="off"></div>`;
+    const del = `<button type="button" class="del" data-act="del" aria-label="Remove line">${ICON_X}</button>`;
+    const price = `<div class="price"><label class="sr" for="p-${id}">Price in Kč</label><input class="pin" id="p-${id}" data-f="p" inputmode="decimal" value="${l.p ? money(l.p) : ""}" placeholder="0" autocomplete="off"><small>Kč</small></div>`;
+    const desc = l.k === "i"
+      ? `<label class="sr" for="v-${id}">Description</label><input class="fld desc" id="v-${id}" data-f="v" value="${esc(l.v)}" placeholder="Např. doprava, pronájem techniky" autocomplete="off">`
+      : `<div class="vwrap"><label class="sr" for="v-${id}">Venue</label><input class="venue${l.v.trim() ? " has" : ""}" id="v-${id}" data-f="v" list="venueList" value="${esc(l.v)}" placeholder="Místo" autocomplete="off"></div>`;
+    return `<li class="row" data-id="${id}">${day}<div class="vcell">${desc}</div>${price}${del}</li>`;
+  }
+  function renderSup(){
+    const b = $("sup");
+    if (!S.name.trim()){
+      b.innerHTML = '<button type="button" class="addme" data-open="set">Add your details</button><p class="pline soft">Name, address, IČO and bank account print on every invoice.</p>';
+      return;
+    }
+    const legal = `<div class="sup-legal"><p class="pline"><b>Dodavatel není plátcem DPH.</b></p><p class="pline">Fyzická osoba zapsaná v živnostenském rejstříku.</p>${S.office ? `<p class="pline">Evidující úřad: ${esc(S.office)}.</p>` : ""}</div>`;
+    const contact = [S.email, S.phone].filter(Boolean).map(esc).join(" · ");
+    b.innerHTML = `<p class="pname">${esc(S.name)}</p>${[S.a1, S.a2].filter(Boolean).map((t) => `<p class="pline">${esc(t)}</p>`).join("")}${S.ico ? `<p class="pline">IČO ${esc(S.ico)}</p>` : ""}${legal}${contact ? `<p class="pline soft">${contact}</p>` : ""}`;
+  }
+  function renderCard(){
+    const i = inv();
+    $("num").value = i.num; sizeNum();
+    $("iss").value = i.iss; $("due").value = i.due; $("sub").value = i.sub;
+    $("cliN").value = i.cli.n; $("cliA1").value = i.cli.a1; $("cliA2").value = i.cli.a2; $("cliIco").value = i.cli.ico; $("cliDic").value = i.cli.dic;
+    rowsEl.innerHTML = i.lines.map(lineHtml).join("");
+    fitAll();
+    renderSup();
+    refresh();
+  }
+  // the highlighter is the venue box itself, sized to its words
+  const meas = document.createElement("canvas").getContext("2d");
+  function fitVenue(el){
+    const cs = getComputedStyle(el);
+    meas.font = cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
+    el.style.width = Math.max(56, Math.ceil(meas.measureText(el.value || el.placeholder || "").width) + 14) + "px";
+    el.classList.toggle("has", !!el.value.trim());
+  }
+  const fitAll = () => rowsEl.querySelectorAll(".venue").forEach(fitVenue);
+  if (document.fonts){ document.fonts.ready.then(fitAll); if (document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", fitAll); }
+  function refresh(){
+    const i = inv();
+    if (!i) return;
+    i.lines.forEach((l) => {
+      const li = rowsEl.querySelector(`li[data-id="${l.id}"]`);
+      if (!li) return;
+      $("wd-" + l.id).textContent = wdOf(l.dt);
+    });
+    const t = totals(i);
+    const ptxt = money(t.p);
+    $("tPrice").innerHTML = ptxt + "<small> Kč</small>";
+    $("tPrice").style.fontSize = ptxt.length > 9 ? "28px" : ptxt.length > 7 ? "33px" : "";
+    $("noRows").hidden = i.lines.length > 0;
+    $("period").textContent = period(i);
+    $("paidStamp").hidden = !i.paid;
+    $("paidDate").textContent = i.paid ? dmy(i.paid) : "";
+    $("paidBtn").textContent = i.paid ? "Mark as unpaid" : "Mark as paid";
+    renderPay(i, t);
+    $("exNote").hidden = cur !== exampleId;
+    const list = sorted(), at = list.findIndex((x) => x.id === cur);
+    $("prev").disabled = at < 0 || at >= list.length - 1;
+    $("next").disabled = at <= 0;
+    renderLedger();
+  }
+  function accInfo(){ return Pay.parseAccount(S.acc); }
+  function spaydOf(i, t){
+    const a = accInfo();
+    if (!a || !a.iban || !(t.p > 0)) return "";
+    return Pay.spayd({ iban: a.iban, amount: t.p, due: i.due, vs: vsOf(i), msg: "Faktura " + i.num, name: S.name });
+  }
+  function renderPay(i, t){
+    const a = accInfo(), code = spaydOf(i, t);
+    if (code){
+      const q = QR.encode(code), n = q.size + 8;
+      $("qr").innerHTML = `<svg viewBox="-4 -4 ${n} ${n}" shape-rendering="crispEdges" role="img" aria-label="QR Platba"><path d="${QR.svgPath(q)}" fill="#1D1B18"/></svg><figcaption>QR Platba</figcaption>`;
+    } else {
+      $("qr").innerHTML = `<div class="empty">${!a || !a.iban ? "Add your bank account to get a QR payment code" : "The QR code appears once there is an amount"}</div>`;
+    }
+    const rows = [];
+    if (S.acc){
+      const isIban = /^CZ/i.test(S.acc.replace(/\s/g, ""));
+      if (!isIban) rows.push(["Číslo účtu", esc(S.acc)]);
+      if (a && a.iban) rows.push(["IBAN", esc(Pay.groupIban(a.iban))]);
+    }
+    rows.push(["K úhradě", money(t.p) + " Kč"]);
+    $("pay").innerHTML = rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("");
+  }
+  function statusOf(i){
+    if (i.id === exampleId) return '<span class="st dim">Example</span>';
+    if (i.id === draft) return '<span class="st dim">Draft</span>';
+    if (i.paid) return `<span class="st ok">Paid ${enDate(i.paid)}</span>`;
+    const days = Math.round((fromIso(i.due) - today()) / 864e5);
+    if (days < 0) return `<span class="st bad">Overdue ${-days} ${-days === 1 ? "day" : "days"}</span>`;
+    if (days === 0) return '<span class="st bad">Due today</span>';
+    return `<span class="st">Due in ${days} ${days === 1 ? "day" : "days"}</span>`;
+  }
+  function renderLedger(){
+    const list = sorted();
+    $("ledger").innerHTML = list.map((i) => `<tr class="${i.id === cur ? "on" : ""}"><td><button type="button" class="lk" data-go="${i.id}" aria-label="Open invoice ${esc(i.num)}">${esc(i.num || "—")}</button></td><td class="cl">${esc(i.cli.n || "—")}</td><td>${enDate(i.iss)}</td><td>${enDate(i.due)}</td><td class="r">${money(totals(i).p)} Kč</td><td>${statusOf(i)}</td></tr>`).join("");
+    const y = today().getFullYear();
+    const real = list.filter((i) => i.id !== exampleId && i.id !== draft);
+    const yr = real.filter((i) => (i.iss || "").slice(0, 4) === String(y)).reduce((s, i) => s + totals(i).p, 0);
+    const open = real.filter((i) => !i.paid).reduce((s, i) => s + totals(i).p, 0);
+    const pct = yr / VAT_LIMIT * 100;
+    $("sum").innerHTML = `Invoiced in ${y}: <b>${money(yr)} Kč</b>, ${pct < 0.1 && yr ? "under 0,1" : num1(Math.round(pct * 10) / 10)} % of the ${money(VAT_LIMIT)} Kč VAT registration limit. Waiting for payment: <b>${money(open)} Kč</b>.<span class="meter" style="display:block"><i style="width:${Math.min(100, pct)}%"></i></span>`;
+    const names = [...new Set(real.map((i) => i.cli.n.trim()).filter(Boolean))];
+    $("cliList").innerHTML = names.map((n) => `<option value="${esc(n)}">`).join("");
+    const venues = [...new Set(Object.values(INV).flatMap((i) => i.lines.filter((l) => l.k === "d").map((l) => l.v.trim())).concat(names).filter(Boolean))];
+    $("venueList").innerHTML = venues.map((n) => `<option value="${esc(n)}">`).join("");
+  }
+  function keepFocus(fn){
+    const a = document.activeElement, id = a && a.id;
+    let s = null, e = null;
+    try { s = a.selectionStart; e = a.selectionEnd; } catch (x){}
+    fn();
+    const n = id && $(id);
+    if (n && n !== document.activeElement){ n.focus(); try { if (s != null) n.setSelectionRange(s, e); } catch (x){} }
+  }
+
+  /* ---------- editing ---------- */
+  function changed(structural){
+    const i = inv();
+    i.ts = Date.now();
+    if (draft === i.id) draft = null;
+    if (exampleId === i.id) exampleId = null;
+    touch(i.id);
+    if (structural) keepFocus(renderCard); else refresh();
+  }
+  function open(id, anim){
+    if (id === cur) return;
+    if (draft && draft !== id){ delete INV[draft]; if (exampleId === draft) exampleId = null; draft = null; }
+    cur = id; renderCard(); msg(""); setImp(false);
+    if (anim){ const c = $("card"); c.classList.remove("swap"); void c.offsetWidth; c.classList.add("swap"); }
+  }
+  function startExample(){ const e = exampleInvoice(); INV[e.id] = e; exampleId = e.id; draft = e.id; cur = e.id; }
+
+  function sizeNum(){ $("num").style.width = Math.max(3, $("num").value.length + 0.8) + "ch"; }
+  $("num").addEventListener("input", (e) => { inv().num = e.target.value.trim(); sizeNum(); changed(); });
+  $("iss").addEventListener("change", (e) => {
+    const v = e.target.value; if (!fromIso(v)) return;
+    const i = inv(); i.iss = v; i.due = iso(addDays(fromIso(v), S.dueDays)); $("due").value = i.due; changed();
+  });
+  $("due").addEventListener("change", (e) => { if (fromIso(e.target.value)){ inv().due = e.target.value; changed(); } });
+  $("sub").addEventListener("input", (e) => { inv().sub = e.target.value; changed(); });
+  [["cliN", "n"], ["cliA1", "a1"], ["cliA2", "a2"], ["cliIco", "ico"], ["cliDic", "dic"]].forEach(([id, k]) => {
+    $(id).addEventListener("input", (e) => { inv().cli[k] = e.target.value; changed(); });
+  });
+  $("cliN").addEventListener("change", () => {
+    const i = inv(), n = i.cli.n.trim().toLowerCase();
+    if (!n || i.cli.a1 || i.cli.a2 || i.cli.ico) return;
+    const prev = sorted().find((x) => x.id !== i.id && x.cli.n.trim().toLowerCase() === n);
+    if (!prev) return;
+    Object.assign(i.cli, prev.cli);
+    ["cliA1", "cliA2", "cliIco", "cliDic"].forEach((id, k) => { $(id).value = i.cli[["a1", "a2", "ico", "dic"][k]]; });
+    changed();
+  });
+  const lineOf = (el) => { const li = el.closest("li[data-id]"); return li && inv().lines.find((l) => l.id === li.dataset.id); };
+  rowsEl.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-act]"); if (!b) return;
+    const l = lineOf(b); if (!l) return;
+    const a = b.dataset.act;
+    if (a === "del"){
+      const i = inv(), at = i.lines.indexOf(l);
+      i.lines.splice(at, 1); changed(true);
+      const keep = cur;
+      toast("Line removed", () => { if (cur !== keep) return; i.lines.splice(at, 0, l); changed(true); });
+    }
+  });
+  rowsEl.addEventListener("input", (e) => {
+    const f = e.target.dataset.f, l = lineOf(e.target); if (!l || !f) return;
+    if (f === "v"){ l.v = e.target.value; if (e.target.classList.contains("venue")) fitVenue(e.target); changed(); }
+    else if (f === "p"){ const n = parseMoney(e.target.value); if (n !== null){ l.p = n; changed(); } }
+  });
+  rowsEl.addEventListener("change", (e) => {
+    const f = e.target.dataset.f, l = lineOf(e.target); if (!l || !f) return;
+    if (f === "dt"){
+      const v = e.target.value.trim();
+      const p = v === "" ? "" : parseDM(v, inv().iss);
+      if (p === null){ e.target.setAttribute("aria-invalid", "true"); msg("Write the date as day.month, for example 17.11.", true); return; }
+      e.target.removeAttribute("aria-invalid"); msg("");
+      l.dt = p; e.target.value = dm(p); changed();
+    } else if (f === "p") e.target.value = l.p ? money(l.p) : "";
+  });
+  rowsEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.matches("input")){ e.preventDefault(); e.target.blur(); }
+  });
+  function addLine(k){
+    const i = inv();
+    const dated = i.lines.filter((l) => l.dt).map((l) => l.dt).sort();
+    const last = dated[dated.length - 1];
+    const dt = k === "d" ? (last ? iso(addDays(fromIso(last), 1)) : i.iss) : "";
+    const l = normLine({ k, dt, v: k === "d" ? lastVenue(i) : "", p: k === "d" ? S.rd : 0 });
+    i.lines.push(l); changed(true);
+    if (k === "i"){ const el = $("v-" + l.id); if (el) el.focus(); }
+  }
+  $("addDay").addEventListener("click", () => addLine("d"));
+
+  /* ---------- import a month exported from Work days ---------- */
+  let imported = [], impName = "";
+  const QUOTES = "\"\u201C\u201D\u201E\u00AB\u00BB";
+  const isPrivate = (v) => v.length >= 2 && QUOTES.includes(v[0]) && QUOTES.includes(v[v.length - 1]);
+  const plainTxt = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  function parseDate(s){
+    s = String(s || "").trim();
+    let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+    if (m) return iso(new Date(+m[1], +m[2] - 1, +m[3]));
+    m = /^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})$/.exec(s);
+    if (m) return iso(new Date(+m[3], +m[2] - 1, +m[1]));
+    return null;
+  }
+  function parseCsv(text){
+    text = String(text).replace(/^\uFEFF/, "");
+    const head = text.split(/\r?\n/)[0] || "";
+    const sep = [";", "\t", ","].map((s) => [s, head.split(s).length]).sort((a, b) => b[1] - a[1])[0][0];
+    const rows = [];
+    let row = [], f = "", q = false;
+    for (let k = 0; k < text.length; k++){
+      const ch = text[k];
+      if (q){ if (ch === '"'){ if (text[k + 1] === '"'){ f += '"'; k++; } else q = false; } else f += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === sep){ row.push(f); f = ""; }
+      else if (ch === "\n"){ row.push(f.replace(/\r$/, "")); rows.push(row); row = []; f = ""; }
+      else f += ch;
+    }
+    if (f || row.length){ row.push(f.replace(/\r$/, "")); rows.push(row); }
+    let ci = { dt: 0, v: 1, d: 2, x: 3 }, start = 0;
+    const h = (rows[0] || []).map(plainTxt);
+    if (rows.length && !parseDate(rows[0][0])){
+      start = 1;
+      const find = (re, not) => h.findIndex((c) => re.test(c) && !(not && not.test(c)));
+      const pick = (k, re, not) => { const at = find(re, not); if (at >= 0) ci[k] = at; };
+      pick("dt", /datum|date/); pick("v", /misto|venue|place|popis/); pick("x", /hodin|hour|extra/); pick("d", /dny|days|odpracov|worked/, /hodin|hour|extra/);
+    }
+    const num = (s) => { const n = Number(String(s || "").replace(/\s/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
+    return rows.slice(start).map((r) => ({ dt: parseDate(r[ci.dt]), v: String(r[ci.v] || "").trim(), d: num(r[ci.d]), x: num(r[ci.x]) }))
+      .filter((r) => r.dt && (r.d > 0 || r.x > 0) && !isPrivate(r.v))
+      .map((r) => ({ dt: r.dt, v: r.v, d: Math.max(0, r.d), x: Math.max(0, r.x) }));
+  }
+  function addLogged(i, rows, venue){
+    const have = new Set(i.lines.filter((l) => l.k === "d").map((l) => l.dt + "|" + l.v));
+    const fresh = rows.filter((r) => !have.has(r.dt + "|" + r.v));
+    if (!fresh.length) return 0;
+    i.lines = i.lines.filter((l) => l.p || l.v.trim());
+    const days = i.lines.filter((l) => l.k === "d").concat(fresh.map((r) => normLine({ k: "d", dt: r.dt, v: r.v, p: r.d * S.rd + r.x * S.rh })));
+    days.sort((a, b) => (a.dt || "9").localeCompare(b.dt || "9"));
+    i.lines = days.concat(i.lines.filter((l) => l.k === "i"));
+    if (!i.cli.n.trim() && venue && venue !== "*"){
+      i.cli.n = venue;
+      const prev = sorted().find((x) => x.id !== i.id && x.cli.n.trim().toLowerCase() === venue.toLowerCase());
+      if (prev) i.cli = Object.assign({}, prev.cli);
+    }
+    if (!i.sub.trim()){ const d = fromIso(fresh[0].dt); i.sub = "Práce dle výkazu – " + MON_NOM[d.getMonth()].toLowerCase() + " " + d.getFullYear(); }
+    return fresh.length;
+  }
+  const chosenImport = () => { const v = $("iVenue").value; return imported.filter((r) => v === "*" || r.v === v); };
+  function impInfo(){
+    const has = imported.length > 0;
+    $("iVenueWrap").hidden = !has; $("iGo").hidden = !has;
+    if (!has) return;
+    const rows = chosenImport(), i = inv();
+    const have = new Set(i.lines.filter((l) => l.k === "d").map((l) => l.dt + "|" + l.v));
+    const fresh = rows.filter((r) => !have.has(r.dt + "|" + r.v));
+    const d = fresh.reduce((s, r) => s + r.d, 0), x = fresh.reduce((s, r) => s + r.x, 0);
+    $("iInfo").textContent = !fresh.length ? impName + ": these days are already on this invoice."
+      : `${impName}: ${fresh.length} ${fresh.length === 1 ? "entry" : "entries"}, ${String(d).replace(".", ",")} ${d === 1 ? "day" : "days"}${x ? ` + ${x} h extra` : ""} = ${money(d * S.rd + x * S.rh)} Kč at your rates.`;
+    $("iGo").disabled = !fresh.length;
+  }
+  function loadImport(file){
+    if (!file) return;
+    setImp(true);
+    const rd = new FileReader();
+    rd.onload = () => {
+      imported = parseCsv(rd.result); impName = file.name;
+      if (!imported.length){ $("iInfo").textContent = file.name + " has no worked days in it. Choose the “Download for Faktury” file from Work days."; impInfo(); return; }
+      const vs = [...new Set(imported.map((r) => r.v).filter(Boolean))], cli = inv().cli.n.trim();
+      $("iVenue").innerHTML = '<option value="*">All venues</option>' + vs.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("") + (imported.some((r) => !r.v) ? '<option value="">No venue written</option>' : "");
+      $("iVenue").value = vs.includes(cli) ? cli : (vs.length === 1 && !imported.some((r) => !r.v) ? vs[0] : "*");
+      impInfo();
+    };
+    rd.onerror = () => { $("iInfo").textContent = "Couldn't read " + file.name + ". Try choosing it again."; };
+    rd.readAsText(file);
+  }
+  function setImp(open){ $("imp").hidden = !open; $("impBtn").setAttribute("aria-expanded", String(open)); if (open) impInfo(); }
+  $("impBtn").addEventListener("click", () => setImp($("imp").hidden));
+  $("impFile").addEventListener("change", (e) => { loadImport(e.target.files[0]); e.target.value = ""; });
+  $("iVenue").addEventListener("change", impInfo);
+  $("iGo").addEventListener("click", () => {
+    const n = addLogged(inv(), chosenImport(), $("iVenue").value);
+    if (!n) return impInfo();
+    changed(true); setImp(false);
+    msg(`Added ${n} ${n === 1 ? "entry" : "entries"} from ${impName}.`);
+  });
+  const cardEl = $("card");
+  cardEl.addEventListener("dragover", (e) => { if (e.dataTransfer && [...e.dataTransfer.types].includes("Files")){ e.preventDefault(); cardEl.classList.add("dropping"); } });
+  cardEl.addEventListener("dragleave", (e) => { if (!cardEl.contains(e.relatedTarget)) cardEl.classList.remove("dropping"); });
+  cardEl.addEventListener("drop", (e) => { if (!e.dataTransfer || !e.dataTransfer.files.length) return; e.preventDefault(); cardEl.classList.remove("dropping"); loadImport(e.dataTransfer.files[0]); });
+  $("addItem").addEventListener("click", () => addLine("i"));
+
+  /* ---------- desk actions ---------- */
+  $("newBtn").addEventListener("click", () => {
+    if (draft && cur === draft && cur !== exampleId) return msg("This new invoice is ready. Fill it in, or open another one.");
+    if (draft){ delete INV[draft]; if (exampleId === draft) exampleId = null; draft = null; }
+    const n = newInvoice(); INV[n.id] = n; draft = n.id; cur = null; open(n.id, true);
+  });
+  $("prev").addEventListener("click", () => { const l = sorted(), at = l.findIndex((x) => x.id === cur); if (at < l.length - 1) open(l[at + 1].id, true); });
+  $("next").addEventListener("click", () => { const l = sorted(), at = l.findIndex((x) => x.id === cur); if (at > 0) open(l[at - 1].id, true); });
+  $("ledger").addEventListener("click", (e) => { const b = e.target.closest("[data-go]"); if (b){ open(b.dataset.go, true); $("card").scrollIntoView({ behavior: "smooth", block: "start" }); } });
+  $("paidBtn").addEventListener("click", () => { const i = inv(); i.paid = i.paid ? null : iso(today()); changed(); });
+  $("dupBtn").addEventListener("click", () => {
+    const copy = plain(inv()), t = today();
+    if (draft){ delete INV[draft]; if (exampleId === draft) exampleId = null; draft = null; }
+    const n = normInv(Object.assign(copy, { num: nextNum(t.getFullYear()), iss: iso(t), due: iso(addDays(t, S.dueDays)), paid: null }), "inv-" + uid());
+    n.lines = n.lines.map((l) => Object.assign(l, { id: uid() }));
+    INV[n.id] = n; cur = null; open(n.id, true); changed();
+    msg("Copied as invoice " + n.num + ". Change the dates and lines as needed.");
+  });
+  let delArm = 0;
+  $("delBtn").addEventListener("click", () => {
+    const b = $("delBtn");
+    if (Date.now() - delArm > 4000){ delArm = Date.now(); b.textContent = "Click again to delete"; b.classList.add("warn"); setTimeout(() => { b.textContent = "Delete"; b.classList.remove("warn"); }, 4000); return; }
+    delArm = 0; b.textContent = "Delete"; b.classList.remove("warn");
+    const gone = inv(), wasDraft = draft === gone.id;
+    delete INV[gone.id];
+    if (wasDraft) draft = null; if (exampleId === gone.id) exampleId = null;
+    else if (!wasDraft) touch(gone.id);
+    cur = (sorted()[0] || {}).id || null;
+    if (!cur){ const n = newInvoice(); INV[n.id] = n; draft = n.id; cur = n.id; }
+    renderCard();
+    if (!wasDraft) toast("Invoice " + gone.num + " deleted", () => { INV[gone.id] = gone; touch(gone.id); open(gone.id); });
+  });
+  function msg(t, warn){ $("msg").textContent = t || ""; $("msg").classList.toggle("warn", !!warn); }
+  let toastT = null, undoFn = null;
+  function toast(t, fn){
+    $("toastTxt").textContent = t; undoFn = fn; $("toast").hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(() => { $("toast").hidden = true; undoFn = null; }, 6000);
+  }
+  $("undo").addEventListener("click", () => { $("toast").hidden = true; if (undoFn) undoFn(); undoFn = null; });
+
+  /* ---------- your details ---------- */
+  function icoOk(v){
+    if (!/^\d{8}$/.test(v)) return false;
+    let s = 0; for (let k = 0; k < 7; k++) s += (+v[k]) * (8 - k);
+    const c = (11 - s % 11) % 10;
+    return c === +v[7];
+  }
+  function applyHand(){ const h = hand(); document.documentElement.style.setProperty("--hand", h.fam + ',"Segoe Print",cursive'); document.documentElement.style.setProperty("--hs", h.hs); fitAll(); }
+  $("s-hand").innerHTML = HANDS.map((h) => `<option value="${h.id}">${h.name}</option>`).join("");
+  function fillSettings(){
+    $("setForm").querySelectorAll("[data-k]").forEach((el) => { el.value = S[el.dataset.k]; });
+    settingsHints();
+  }
+  function settingsHints(){
+    const a = Pay.parseAccount(S.acc), h = $("accHint");
+    if (!S.acc.trim()){ h.textContent = "Needed for the QR payment code."; h.classList.remove("bad"); }
+    else if (!a || !a.iban){ h.textContent = "Write it as 123456789/0800, with an optional prefix like 19-123456789/0800."; h.classList.add("bad"); }
+    else { h.textContent = (a.ok ? "IBAN " : "This number fails the bank check. IBAN would be ") + Pay.groupIban(a.iban); h.classList.toggle("bad", !a.ok); }
+    $("icoHint").hidden = !S.ico || icoOk(S.ico.trim());
+  }
+  $("setForm").addEventListener("input", (e) => {
+    const k = e.target.dataset.k; if (!k) return;
+    if (e.target.dataset.n){ const n = parseMoney(e.target.value); if (n === null) return; S[k] = k === "dueDays" ? Math.min(120, Math.round(n)) : n; }
+    else S[k] = e.target.value;
+    if (k === "hand") applyHand();
+    settingsHints(); touch("settings"); renderSup(); refresh();
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest('[data-open="set"]')) return;
+    fillSettings();
+    const d = $("dlg");
+    try { d.showModal(); } catch (x){ d.setAttribute("open", ""); }
+  });
+  $("setBtn").addEventListener("click", () => { fillSettings(); const d = $("dlg"); try { d.showModal(); } catch (x){ d.setAttribute("open", ""); } });
+  $("setForm").addEventListener("submit", (e) => { e.preventDefault(); const d = $("dlg"); try { d.close(); } catch (x){ d.removeAttribute("open"); } });
+
+  /* ---------- PDF: the invoice drawn on A4 canvases, in Czech ---------- */
+  function loadFonts(list){
+    if (!document.fonts || !document.fonts.load) return Promise.resolve();
+    return Promise.race([Promise.all(list.map((f) => document.fonts.load(f).catch(() => {}))), new Promise((r) => setTimeout(r, 3000))]);
+  }
+  function drawInvoice(i){
+    const W = 1240, H = 1754, K = 4 / 3, M = 88, R = W - M;
+    const INK = "#1D1B18", SOFT = "#4A4337", RED = "#A82614", RULE = "rgba(29,27,24,.32)", DESK = "#23282C";
+    const SANS = '"Archivo","Arial Narrow",Arial,sans-serif', STEN = '"Big Shoulders Stencil","Archivo","Arial Narrow",sans-serif';
+    const hd = hand(), HAND = hd.fam + ',"Segoe Print",cursive';
+    const white = S.paper === "white";
+    const t = totals(i);
+    const lines = i.lines.filter((l) => l.v.trim() || l.p);
+    const year = (fromIso(i.iss) || today()).getFullYear();
+    const C = { day: M, venue: M + 150 };
+    const pages = [];
+    let c = null;
+    const f = (spec, st) => { c.font = spec; try { c.fontStretch = st || "normal"; } catch (e){} };
+    const tx = (s, x, y, spec, col, al, st) => { f(spec, st); c.fillStyle = col || INK; c.textAlign = al || "left"; c.textBaseline = "alphabetic"; c.fillText(s, x, y); return c.measureText(s).width; };
+    const wid = (s, spec, st) => { f(spec, st); return c.measureText(s).width; };
+    const fit = (s, max, spec, st) => {
+      s = String(s || ""); f(spec, st);
+      if (c.measureText(s).width <= max) return s;
+      while (s.length > 1 && c.measureText(s + "…").width > max) s = s.slice(0, -1);
+      return s + "…";
+    };
+    const rule = (x1, y1, x2, y2, w, col) => { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.lineWidth = w; c.strokeStyle = col || INK; c.stroke(); };
+    function hl(x, base, w, size){
+      const g = c.createLinearGradient(x - 5, 0, x + w + 5, 0), e = Math.min(0.45, 5 / (w + 10));
+      g.addColorStop(0, "rgba(255,224,60,0)"); g.addColorStop(e, "rgba(255,224,60,.78)");
+      g.addColorStop(1 - e, "rgba(255,216,40,.72)"); g.addColorStop(1, "rgba(255,224,60,0)");
+      c.fillStyle = g; c.fillRect(x - 5, base - size * 0.5, w + 10, size * 0.62);
+    }
+    function price(v, xr, base, size, wt){
+      const kw = tx("Kč", xr, base, `700 ${Math.round(size * 0.46)}px ${SANS}`, INK, "right", "condensed");
+      tx(money(v), xr - kw - 6, base, `${wt || 800} ${size}px ${STEN}`, INK, "right");
+    }
+    function ringAt(cx, cy, r, fill){
+      c.save();
+      c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
+      if (fill >= 1){ c.fillStyle = DESK; c.fill(); }
+      else {
+        if (fill > 0){ c.save(); c.clip(); c.fillStyle = DESK; c.fillRect(cx - r - 2, cy - r - 2, r + 2, 2 * r + 4); c.restore(); }
+        c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.lineWidth = 1.6; c.strokeStyle = "rgba(29,27,24,.45)"; c.stroke();
+      }
+      c.restore();
+    }
+    function stamp(cx, cy, r){
+      const u = r / 104;
+      c.save(); c.translate(cx, cy); c.rotate(-14 * Math.PI / 180);
+      c.globalAlpha = 0.8; c.globalCompositeOperation = "multiply";
+      c.strokeStyle = RED; c.fillStyle = RED;
+      c.lineWidth = 5 * u; c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.stroke();
+      c.lineWidth = 2.5 * u; c.beginPath(); c.arc(0, 0, 66 * u, 0, Math.PI * 2); c.stroke();
+      f(`800 ${21 * u}px ${STEN}`); c.textAlign = "left"; c.textBaseline = "alphabetic";
+      const chars = Array.from("NEPLÁTCE DPH ★ FAKTURA ★ " + year + " ★ ");
+      const ws = chars.map((ch) => c.measureText(ch).width), tot = ws.reduce((a, b) => a + b, 0);
+      const rr = 82 * u, gap = (2 * Math.PI * rr - tot) / chars.length;
+      let a = -0.6;
+      chars.forEach((ch, k) => { c.save(); c.rotate(a + ws[k] / 2 / rr); c.fillText(ch, -ws[k] / 2, -rr); c.restore(); a += (ws[k] + gap) / rr; });
+      f(`800 ${44 * u}px ${STEN}`); c.textAlign = "center"; c.fillText("OSVČ", 0, 16 * u);
+      c.restore();
+    }
+    function paidStamp(cx, cy, date){
+      c.save(); c.translate(cx, cy); c.rotate(-8 * Math.PI / 180);
+      c.globalAlpha = 0.88; c.globalCompositeOperation = "multiply";
+      f(`900 56px ${STEN}`);
+      const w = c.measureText("ZAPLACENO").width + 40, h = 104;
+      c.strokeStyle = RED; c.lineWidth = 4; c.strokeRect(-w / 2, -h / 2, w, h);
+      c.lineWidth = 1.5; c.strokeRect(-w / 2 + 7, -h / 2 + 7, w - 14, h - 14);
+      c.fillStyle = RED; c.textAlign = "center"; c.fillText("ZAPLACENO", 0, 10);
+      f(`700 21px ${SANS}`); c.fillText(date, 0, 38);
+      c.restore();
+    }
+    function newPage(){
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(W * K); cv.height = Math.round(H * K);
+      c = cv.getContext("2d"); c.scale(K, K);
+      if (white){ c.fillStyle = "#fff"; c.fillRect(0, 0, W, H); }
+      else {
+        const g = c.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, "#EFDFB5"); g.addColorStop(0.5, "#E8D4A3"); g.addColorStop(1, "#E1C990");
+        c.fillStyle = g; c.fillRect(0, 0, W, H);
+      }
+      const CUT = 64;
+      c.fillStyle = "#fff"; c.beginPath(); c.moveTo(W - CUT, 0); c.lineTo(W, 0); c.lineTo(W, CUT); c.closePath(); c.fill();
+      c.fillStyle = white ? "#E4E4E4" : "#CDB27C"; c.beginPath(); c.moveTo(W - CUT, 0); c.lineTo(W, CUT); c.lineTo(W - CUT, CUT); c.closePath(); c.fill();
+      pages.push(cv);
+    }
+    function thead(y){
+      const sp = `700 19px ${SANS}`;
+      tx("Den", C.day, y, sp, INK, "left", "condensed");
+      tx("Místo / popis", C.venue, y, sp, INK, "left", "condensed");
+      tx("Cena", R, y, sp, INK, "right", "condensed");
+      rule(M, y + 12, R, y + 12, 2);
+      return y + 12;
+    }
+    const RH = lines.length <= 12 ? 64 : 54, sc = RH / 64;
+    function row(l, top){
+      const base = top + RH * 0.64;
+      if (l.dt){
+        tx(wdOf(l.dt), C.day, base, `700 ${Math.round(18 * sc)}px ${SANS}`, SOFT, "left", "condensed");
+        tx(dm(l.dt), C.day + 38 * sc, base, `800 ${Math.round(34 * sc)}px ${STEN}`);
+      }
+      if (l.k === "i"){
+        const sp = `500 ${Math.round(24 * sc)}px ${SANS}`;
+        tx(fit(l.v, R - 240 - C.venue, sp, "semi-condensed"), C.venue, base, sp, INK, "left", "semi-condensed");
+      } else {
+        const vs = Math.round(28 * hd.hs * sc), sp = `700 ${vs}px ${HAND}`, vt = fit(l.v, R - 240 - C.venue, sp);
+        if (vt.trim()){ hl(C.venue, base, wid(vt, sp), vs); tx(vt, C.venue, base, sp); }
+      }
+      price(linePrice(l), R, base, Math.round(32 * sc));
+      rule(M, top + RH, R, top + RH, 1, RULE);
+    }
+    function foot(y){
+      rule(M, y, R, y, 3);
+      let b = y + 60;
+      tx("Celkem k úhradě", M, b, `800 34px ${SANS}`, INK, "left", "condensed");
+      price(t.p, R, b, 58, 900);
+      b += 20;
+      const fy = Math.max(b + 40, H - 360);
+      if (i.paid) paidStamp(M + 710, Math.max(b + 30, Math.min(b + 150, fy - 70)), dmy(i.paid));
+      rule(M, fy, R, fy, 1.5, RULE);
+      const code = spaydOf(i, t), a = accInfo();
+      let px = M;
+      if (code){
+        const q = QR.encode(code), qs = 216, ms = qs / q.size;
+        c.fillStyle = INK;
+        for (let yy = 0; yy < q.size; yy++) for (let xx = 0; xx < q.size; xx++) if (q.get(xx, yy)) c.fillRect(M + xx * ms, fy + 34 + yy * ms, ms + 0.4, ms + 0.4);
+        tx("QR Platba", M, fy + 34 + qs + 30, `700 19px ${SANS}`, SOFT, "left", "condensed");
+        px = M + qs + 48;
+      }
+      let py = fy + 58;
+      const rows = [];
+      if (S.acc){
+        if (!/^CZ/i.test(S.acc.replace(/\s/g, ""))) rows.push(["Číslo účtu", S.acc.trim()]);
+        if (a && a.iban) rows.push(["IBAN", Pay.groupIban(a.iban)]);
+      }
+      rows.push(["K úhradě", money(t.p) + " Kč"]);
+      rows.forEach((r) => { tx(r[0], px, py, `700 19px ${SANS}`, SOFT, "left", "condensed"); tx(r[1], px + 190, py, `600 24px ${SANS}`); py += 36; });
+      py += 16;
+    }
+
+    // first page: head, parties, dates
+    newPage();
+    const numT = i.num || "—", bh = 104, by = 84;
+    const LB = Math.max(90, wid("Faktura", `700 20px ${SANS}`, "condensed") + 30);
+    const bw = LB + wid(numT, `800 88px ${STEN}`) + 40, bx = R - bw;
+    c.lineWidth = 3; c.strokeStyle = INK; c.strokeRect(bx, by, bw, bh); rule(bx + LB, by, bx + LB, by + bh, 3);
+    tx("Faktura", bx + 14, by + 32, `700 20px ${SANS}`, INK, "left", "condensed");
+    tx("č.", bx + 14, by + bh - 14, `700 20px ${SANS}`, INK, "left", "condensed");
+    tx(numT, bx + bw - 20, by + bh - 14, `800 88px ${STEN}`, INK, "right");
+    tx("Faktura", M, 112, `700 28px ${SANS}`, INK, "left", "semi-condensed");
+    let psz = 62;
+    while (psz > 38 && wid(period(i), `900 ${psz}px ${SANS}`, "extra-condensed") > bx - M - 30) psz -= 2;
+    tx(fit(period(i), bx - M - 30, `900 ${psz}px ${SANS}`, "extra-condensed"), M, 180, `900 ${psz}px ${SANS}`, INK, "left", "extra-condensed");
+    rule(M, 214, R, 214, 4);
+
+    let y = 262;
+    const half = (R - M) / 2, X2 = M + half + 24, cw = half - 40;
+    tx("Dodavatel", M, y, `700 19px ${SANS}`, SOFT, "left", "condensed");
+    tx("Odběratel", X2, y, `700 19px ${SANS}`, SOFT, "left", "condensed");
+    let ys = y + 44;
+    tx(fit(S.name, cw, `800 32px ${SANS}`, "semi-condensed"), M, ys, `800 32px ${SANS}`, INK, "left", "semi-condensed"); ys += 38;
+    [S.a1, S.a2].filter(Boolean).forEach((s) => { tx(fit(s, cw, `400 23px ${SANS}`), M, ys, `400 23px ${SANS}`); ys += 31; });
+    if (S.ico){ tx("IČO " + S.ico, M, ys, `400 23px ${SANS}`); ys += 31; }
+    ys += 6;
+    tx("Dodavatel není plátcem DPH.", M, ys, `700 21px ${SANS}`); ys += 28;
+    tx(fit("Fyzická osoba zapsaná v živnostenském rejstříku.", cw, `400 20px ${SANS}`), M, ys, `400 20px ${SANS}`, SOFT); ys += 28;
+    if (S.office){ tx(fit("Evidující úřad: " + S.office + ".", cw, `400 20px ${SANS}`), M, ys, `400 20px ${SANS}`, SOFT); ys += 28; }
+    const contact = [S.email, S.phone].filter(Boolean).join("  ·  ");
+    if (contact){ ys += 4; tx(fit(contact, cw, `400 20px ${SANS}`), M, ys, `400 20px ${SANS}`, SOFT); ys += 28; }
+    let yc = y + 44;
+    tx(fit(i.cli.n, cw, `800 32px ${SANS}`, "semi-condensed"), X2, yc, `800 32px ${SANS}`, INK, "left", "semi-condensed"); yc += 38;
+    [i.cli.a1, i.cli.a2].filter(Boolean).forEach((s) => { tx(fit(s, cw, `400 23px ${SANS}`), X2, yc, `400 23px ${SANS}`); yc += 31; });
+    if (i.cli.ico){ tx(fit("IČO " + i.cli.ico, cw, `400 23px ${SANS}`), X2, yc, `400 23px ${SANS}`); yc += 31; }
+    if (i.cli.dic){ tx(fit("DIČ " + i.cli.dic, cw, `400 23px ${SANS}`), X2, yc, `400 23px ${SANS}`); yc += 31; }
+    y = Math.max(ys, yc) + 4;
+    rule(M + half, 236, M + half, y, 1, RULE);
+    rule(M, y, R, y, 1.5);
+    const mh = 96, mw = (R - M) / 3;
+    [["Datum vystavení", dmy(i.iss), 1], ["Datum splatnosti", dmy(i.due), 1], ["Forma úhrady", "Převodem", 0]].forEach((m, k) => {
+      const x = M + k * mw + (k ? 18 : 0);
+      if (k) rule(M + k * mw, y, M + k * mw, y + mh, 1, RULE);
+      tx(m[0], x, y + 32, `700 19px ${SANS}`, SOFT, "left", "condensed");
+      if (m[2]) tx(fit(m[1], mw - 30, `800 40px ${STEN}`), x, y + 78, `800 40px ${STEN}`);
+      else tx(m[1], x, y + 76, `800 30px ${SANS}`, INK, "left", "condensed");
+    });
+    y += mh; rule(M, y, R, y, 1.5);
+    y += 46;
+    if (i.sub.trim()){
+      tx("Předmět plnění", M, y, `700 19px ${SANS}`, SOFT, "left", "condensed");
+      tx(fit(i.sub, R - M - 170, `600 25px ${SANS}`, "semi-condensed"), M + 170, y, `600 25px ${SANS}`, INK, "left", "semi-condensed");
+      y += 46;
+    }
+
+    // lines, spilling onto more pages when needed
+    let y0 = thead(y + 6), idx = 0;
+    for (;;){
+      const rem = lines.length - idx;
+      const capF = Math.floor((H - 502 - y0) / RH), capN = Math.floor((H - 90 - y0) / RH);
+      if (rem <= capF){ lines.slice(idx).forEach((l, k) => row(l, y0 + k * RH)); foot(y0 + rem * RH); break; }
+      const take = Math.max(1, rem <= capN ? rem - 1 : capN);
+      lines.slice(idx, idx + take).forEach((l, k) => row(l, y0 + k * RH));
+      idx += take;
+      newPage();
+      tx("Faktura č. " + (i.num || "") + " – pokračování", M, 120, `800 34px ${SANS}`, INK, "left", "condensed");
+      rule(M, 150, R, 150, 3);
+      y0 = thead(206);
+    }
+    if (pages.length > 1) pages.forEach((cv, k) => {
+      c = cv.getContext("2d");
+      tx("Strana " + (k + 1) + " / " + pages.length, M, H - 34, `600 18px ${SANS}`, SOFT, "left", "condensed");
+    });
+    return pages;
+  }
+  function canvasJpeg(cv){
+    return new Promise((res, rej) => {
+      cv.toBlob((b) => { if (!b) return rej(new Error("no image")); b.arrayBuffer().then((buf) => res(new Uint8Array(buf)), rej); }, "image/jpeg", 0.92);
+    });
+  }
+  function buildPdf(imgs){
+    const enc = new TextEncoder(), parts = [], offs = [];
+    let len = 0;
+    const add = (x) => { const b = typeof x === "string" ? enc.encode(x) : x; parts.push(b); len += b.length; };
+    const obj = (n, body) => { offs[n] = len; add(n + " 0 obj\n" + body + "\nendobj\n"); };
+    const PW = 595.28, PH = 841.89, n = imgs.length, total = 3 + n * 3;
+    add("%PDF-1.4\n%âãÏÓ\n");
+    obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    obj(2, "<< /Type /Pages /Kids [" + imgs.map((_, k) => (3 + k * 3) + " 0 R").join(" ") + "] /Count " + n + " >>");
+    imgs.forEach((im, k) => {
+      const p = 3 + k * 3, content = "q " + PW + " 0 0 " + PH + " 0 0 cm /Im" + k + " Do Q";
+      obj(p, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + PW + " " + PH + "] /Resources << /XObject << /Im" + k + " " + (p + 2) + " 0 R >> >> /Contents " + (p + 1) + " 0 R >>");
+      obj(p + 1, "<< /Length " + content.length + " >>\nstream\n" + content + "\nendstream");
+      offs[p + 2] = len;
+      add((p + 2) + " 0 obj\n<< /Type /XObject /Subtype /Image /Width " + im.w + " /Height " + im.h + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + im.jpeg.length + " >>\nstream\n");
+      add(im.jpeg); add("\nendstream\nendobj\n");
+    });
+    const xref = len;
+    let x = "xref\n0 " + total + "\n0000000000 65535 f \n";
+    for (let k = 1; k < total; k++) x += String(offs[k]).padStart(10, "0") + " 00000 n \n";
+    add(x + "trailer\n<< /Size " + total + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n");
+    return new Blob(parts, { type: "application/pdf" });
+  }
+  function savePdf(blob, filename){
+    const inFrame = window.top !== window.self;
+    const p = inFrame ? getClaude(1500).then((c) => c ? c.use("downloads").catch(() => null) : null) : Promise.resolve(null);
+    return p.then((dl) => {
+      if (dl) return dl.save({ filename, data: blob });
+      const url = URL.createObjectURL(blob), a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    });
+  }
+  const andList = (a) => a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
+  function exportPdf(){
+    const i = inv(), t = totals(i), miss = [];
+    if (!S.name.trim()) miss.push("your name");
+    if (!S.a1.trim() && !S.a2.trim()) miss.push("your address");
+    if (!S.ico.trim()) miss.push("your IČO");
+    if (!i.cli.n.trim()) miss.push("the client's name");
+    if (!(t.p > 0)) miss.push("something to bill");
+    if (miss.length) return msg("Before the PDF, add " + andList(miss) + ".", true);
+    if (draft === i.id || exampleId === i.id) changed();
+    const b = $("pdfBtn"), h = hand();
+    b.disabled = true; msg("Making the PDF…");
+    loadFonts(['900 40px "Archivo"', '400 40px "Archivo"', '800 40px "Big Shoulders Stencil"', "700 30px " + h.fam])
+      .then(() => Promise.all(drawInvoice(i).map((cv) => canvasJpeg(cv).then((jpeg) => ({ jpeg, w: cv.width, h: cv.height })))))
+      .then((imgs) => savePdf(buildPdf(imgs), "Faktura " + (i.num || "bez cisla") + ".pdf"))
+      .then(() => msg("Faktura " + i.num + " is ready." + (accInfo() && accInfo().iban ? "" : " It has no QR payment code until you add your bank account.")),
+        (e) => { if (e && e.code === "declined") msg(""); else msg("Couldn't make the PDF. Try again.", true); })
+      .then(() => { b.disabled = false; });
+  }
+  $("pdfBtn").addEventListener("click", exportPdf);
+
+  /* ---------- start ---------- */
+  const cache = lsLoad();
+  if (cache === undefined) mode = "memory";
+  if (cache && typeof cache === "object"){
+    S = Object.assign({}, DEF, cache.settings || {});
+    Object.keys(cache.inv || {}).forEach((id) => { if (/^inv-/.test(id)) INV[id] = normInv(cache.inv[id], id); });
+  }
+  applyHand();
+  cur = (sorted()[0] || {}).id || null;
+  if (!cur) startExample();
+  renderCard();
+  status();
+  connect();
+}
+
+</script>
+</body>
+</html>
