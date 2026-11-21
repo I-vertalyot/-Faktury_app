@@ -362,7 +362,6 @@ dialog::backdrop{background:rgba(10,12,14,.66)}
         <dl class="pay" id="pay"></dl>
         <p class="legal" id="legal"></p>
       </div>
-      <div class="paid" id="paidStamp" hidden><b>ZAPLACENO</b><span id="paidDate"></span></div>
     </footer>
   </article>
   </div>
@@ -913,8 +912,6 @@ var Pay = (function (){
     $("tPrice").style.fontSize = ptxt.length > 9 ? "28px" : ptxt.length > 7 ? "33px" : "";
     $("noRows").hidden = i.lines.length > 0;
     $("period").textContent = period(i);
-    $("paidStamp").hidden = !i.paid;
-    $("paidDate").textContent = i.paid ? dmy(i.paid) : "";
     $("paidBtn").textContent = i.paid ? "Mark as unpaid" : "Mark as paid";
     renderPay(i, t);
     $("exNote").hidden = cur !== exampleId;
@@ -1348,30 +1345,29 @@ var Pay = (function (){
       price(linePrice(l), R, base, Math.round(32 * sc));
       rule(M, top + RH, R, top + RH, 1, RULE);
     }
+    // the total sits at the foot of the page, with the QR code and IBAN under it when there are any
     function foot(y){
-      rule(M, y, R, y, 3);
-      let b = y + 60;
+      const code = spaydOf(i, t), a = accInfo(), qs = 216;
+      const iban = S.acc && !/^CZ/i.test(S.acc.replace(/\s/g, "")) && a && a.iban ? Pay.groupIban(a.iban) : "";
+      const totH = 92, below = code ? qs + 76 : iban ? 56 : 0;
+      const fy = Math.max(y + 40, H - 72 - totH - below);
+      rule(M, fy, R, fy, 3);
+      const b = fy + 62;
       tx("Celkem k úhradě", M, b, `800 34px ${SANS}`, INK, "left", "condensed");
       price(t.p, R, b, 58, 900);
-      b += 20;
-      const fy = Math.max(b + 40, H - 360);
-      if (i.paid) paidStamp(M + 710, Math.max(b + 30, Math.min(b + 150, fy - 70)), dmy(i.paid));
-      rule(M, fy, R, fy, 1.5, RULE);
-      const code = spaydOf(i, t), a = accInfo();
+      const qy = fy + totH + 6;
       let px = M;
       if (code){
-        const q = QR.encode(code), qs = 216, ms = qs / q.size;
+        const q = QR.encode(code), ms = qs / q.size;
         c.fillStyle = INK;
-        for (let yy = 0; yy < q.size; yy++) for (let xx = 0; xx < q.size; xx++) if (q.get(xx, yy)) c.fillRect(M + xx * ms, fy + 34 + yy * ms, ms + 0.4, ms + 0.4);
-        tx("QR Platba", M, fy + 34 + qs + 30, `700 19px ${SANS}`, SOFT, "left", "condensed");
+        for (let yy = 0; yy < q.size; yy++) for (let xx = 0; xx < q.size; xx++) if (q.get(xx, yy)) c.fillRect(M + xx * ms, qy + yy * ms, ms + 0.4, ms + 0.4);
+        tx("QR Platba", M, qy + qs + 30, `700 19px ${SANS}`, SOFT, "left", "condensed");
         px = M + qs + 48;
       }
-      let py = fy + 58;
-      const rows = [];
-      if (S.acc && !/^CZ/i.test(S.acc.replace(/\s/g, "")) && a && a.iban) rows.push(["IBAN", Pay.groupIban(a.iban)]);
-      rows.push(["K úhradě", money(t.p) + " Kč"]);
-      rows.forEach((r) => { tx(r[0], px, py, `700 19px ${SANS}`, SOFT, "left", "condensed"); tx(r[1], px + 190, py, `600 24px ${SANS}`); py += 36; });
-      py += 16;
+      if (iban){
+        tx("IBAN", px, qy + 26, `700 19px ${SANS}`, SOFT, "left", "condensed");
+        tx(iban, px + 70, qy + 26, `600 24px ${SANS}`);
+      }
     }
 
     // first page: head, parties, dates
