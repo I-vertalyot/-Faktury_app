@@ -69,7 +69,10 @@ button{font:inherit;color:inherit}
 @keyframes swap{from{transform:translateY(8px) rotate(-.25deg);opacity:.35}to{transform:none;opacity:1}}
 .head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:18px;border-bottom:3px solid var(--ink)}
 .head h1{margin:0;font-size:20px;line-height:1;font-weight:700;font-stretch:85%}
-.period{margin:10px 0 0;font-size:36px;line-height:1.05;font-weight:900;font-stretch:62%;text-wrap:balance}
+.period{display:block;width:100%;margin:10px 0 0;padding:0;border:0;border-bottom:1px dashed transparent;border-radius:0;background:transparent;color:var(--ink);font:900 36px/1.05 var(--sans);font-stretch:62%}
+.period:hover{border-bottom-color:var(--rule)}
+.period:focus{outline:none;border-bottom-color:var(--ink);background:rgba(255,250,232,.35)}
+.period::placeholder{color:rgba(29,27,24,.35);opacity:1}
 .numbox{display:flex;align-items:stretch;border:2px solid var(--ink);flex:none;margin-right:28px}
 .nb-label{display:flex;flex-direction:column;justify-content:space-between;padding:8px 12px;border-right:2px solid var(--ink);font-size:13px;font-weight:700;font-stretch:75%}
 .nb-num{width:7.6ch;border:0;background:transparent;padding:4px 14px 0;font-size:56px;color:var(--ink);text-align:right}
@@ -313,7 +316,7 @@ dialog::backdrop{background:rgba(10,12,14,.66)}
     <header class="head">
       <div>
         <h1>Faktura</h1>
-        <p class="period" id="period"></p>
+        <label class="sr" for="period">Invoice period</label><input class="period" id="period" autocomplete="off" placeholder="Např. Listopad 2026">
       </div>
       <div class="numbox">
         <div class="nb-label" aria-hidden="true"><span>Faktura</span><span>č.</span></div>
@@ -725,7 +728,7 @@ var Pay = (function (){
   }
   function period(i){
     const ds = i.lines.map((l) => l.dt).filter(Boolean).sort();
-    if (!ds.length){ const d = fromIso(i.iss) || today(); return MON_NOM[d.getMonth()] + " " + d.getFullYear(); }
+    if (!ds.length) return "";
     const a = fromIso(ds[0]), b = fromIso(ds[ds.length - 1]);
     if (+a === +b) return a.getDate() + ". " + MON_GEN[a.getMonth()] + " " + a.getFullYear();
     if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()) return a.getDate() + ".–" + b.getDate() + ". " + MON_GEN[b.getMonth()] + " " + b.getFullYear();
@@ -746,7 +749,7 @@ var Pay = (function (){
     const c = o.cli && typeof o.cli === "object" ? o.cli : {};
     const s = (v) => typeof v === "string" ? v : "";
     const rd = isFinite(+o.rd) ? +o.rd : DEF.rd, rh = isFinite(+o.rh) ? +o.rh : DEF.rh;
-    return { id, num: s(o.num), iss: fromIso(o.iss) ? o.iss : iso(today()), due: fromIso(o.due) ? o.due : iso(addDays(today(), 14)), sub: s(o.sub),
+    return { id, num: s(o.num), iss: fromIso(o.iss) ? o.iss : iso(today()), due: fromIso(o.due) ? o.due : iso(addDays(today(), 14)), sub: s(o.sub), per: s(o.per),
       cli: { n: s(c.n), a1: s(c.a1), a2: s(c.a2), ico: s(c.ico), dic: s(c.dic) },
       rd, rh,
       lines: Array.isArray(o.lines) ? o.lines.slice(0, 80).map((l) => normLine(l, rd, rh)) : [], paid: fromIso(o.paid) ? o.paid : null, ts: +o.ts || 0 };
@@ -919,7 +922,7 @@ var Pay = (function (){
     $("tPrice").innerHTML = ptxt + "<small> Kč</small>";
     $("tPrice").style.fontSize = ptxt.length > 9 ? "28px" : ptxt.length > 7 ? "33px" : "";
     $("noRows").hidden = i.lines.length > 0;
-    $("period").textContent = period(i);
+    if (document.activeElement !== $("period")) $("period").value = i.per || period(i);
     $("paidBtn").textContent = i.paid ? "Mark as unpaid" : "Mark as paid";
     renderPay(i, t);
     $("exNote").hidden = cur !== exampleId;
@@ -1009,6 +1012,7 @@ var Pay = (function (){
     const i = inv(); i.iss = v; i.due = iso(addDays(fromIso(v), S.dueDays)); $("due").value = i.due; changed();
   });
   $("due").addEventListener("change", (e) => { if (fromIso(e.target.value)){ inv().due = e.target.value; changed(); } });
+  $("period").addEventListener("input", (e) => { inv().per = e.target.value; changed(); });
   $("sub").addEventListener("input", (e) => { inv().sub = e.target.value; changed(); });
   [["cliN", "n"], ["cliA1", "a1"], ["cliA2", "a2"], ["cliIco", "ico"], ["cliDic", "dic"]].forEach(([id, k]) => {
     $(id).addEventListener("input", (e) => { inv().cli[k] = e.target.value; changed(); });
