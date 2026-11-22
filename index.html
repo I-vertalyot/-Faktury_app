@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Inter:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@700;800;900&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@400;700&family=Playwrite+CZ:wght@300;400&family=Caveat:wght@500;700&family=Patrick+Hand&family=Kalam:wght@400;700&family=Courier+Prime:wght@400;700&display=swap">
 <style>
@@ -115,10 +115,11 @@ input.pname:focus,input.pline:focus,.idl:focus-within{outline:none;border-bottom
 .dfld:focus{outline:none;background:rgba(255,250,232,.45)}
 .dfld::-webkit-calendar-picker-indicator{opacity:.45;cursor:pointer}
 .mval{display:block;padding-top:4px;font:800 26px/1.1 var(--stencil)}
-.mval.sans{font:800 22px/1.25 var(--sans);font-stretch:80%;padding-top:6px}
-.macc{display:block;margin-top:2px;font:600 16px/1.3 var(--sans);overflow-wrap:anywhere}
+.mval.sans{font:700 17px/1.3 var(--sans);font-stretch:85%;padding-top:6px}
+.macc{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;margin-top:4px;font:800 26px/1.1 var(--stencil);overflow-wrap:anywhere}
+.macc.iban{font:600 17px/1.3 var(--sans)}
 .macc:empty{display:none}
-.macc small{font-size:14px;font-weight:700;font-stretch:80%;color:var(--soft);margin-right:4px}
+.macc small{font:700 14px var(--sans);font-stretch:80%;color:var(--soft)}
 
 .subject{display:flex;align-items:baseline;gap:14px;padding:12px 0 4px}
 .subject .lbl{flex:none}
@@ -416,7 +417,6 @@ dialog::backdrop{background:rgba(10,12,14,.66)}
       <div class="f"><label for="s-rh">Extra hour rate (Kč)</label><input id="s-rh" data-k="rh" data-n="1" inputmode="numeric"></div>
       <div class="f"><label for="s-due">Payment due after (days)</label><input id="s-due" data-k="dueDays" data-n="1" inputmode="numeric"></div>
       <div class="f"><label for="s-hand">Handwriting</label><select id="s-hand" data-k="hand"></select></div>
-      <div class="f wide"><label for="s-paper">PDF paper</label><select id="s-paper" data-k="paper"><option value="kraft">Kraft card, like the screen</option><option value="white">White, for printing</option></select></div>
     </div>
     <div class="end"><button class="pill" value="done">Done</button></div>
   </form>
@@ -946,6 +946,7 @@ var Pay = (function (){
       $("qr").innerHTML = `<div class="empty">${why}</div>`;
     }
     const isIban = /^CZ/i.test(S.acc.replace(/\s/g, ""));
+    $("macc").className = "macc" + (isIban ? " iban" : "");
     $("macc").innerHTML = S.acc.trim() ? (isIban ? "<small>IBAN</small>" + esc(Pay.groupIban(a && a.iban ? a.iban : S.acc.replace(/\s/g, "").toUpperCase())) : "<small>č. ú.</small>" + esc(S.acc.trim())) : "";
     const rows = [];
     if (S.acc && !isIban && a && a.iban) rows.push(["IBAN", esc(Pay.groupIban(a.iban))]);
@@ -1244,218 +1245,131 @@ var Pay = (function (){
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
     return Promise.race([Promise.all(list.map((f) => document.fonts.load(f).catch(() => {}))), new Promise((r) => setTimeout(r, 3000))]);
   }
+  // Layout 6 "Side band": white A4, navy band on the left, navy table head and total bar
   function drawInvoice(i){
-    const W = 1240, H = 1754, K = 4 / 3, M = 88, R = W - M;
-    const INK = "#1D1B18", SOFT = "#4A4337", RED = "#A82614", RULE = "rgba(29,27,24,.32)", DESK = "#23282C";
-    const SANS = '"Archivo","Arial Narrow",Arial,sans-serif', STEN = '"Big Shoulders Stencil","Archivo","Arial Narrow",sans-serif';
-    const hd = hand(), HAND = hd.fam + ',"Segoe Print",cursive';
-    const white = S.paper === "white";
+    const W = 794, H = 1123, K = 1653 / 794, L = 70, R = 738;
+    const INK = "#161616", GREY = "#555555", NAVY = "#1F3A5F", TINT = "#EEF2F7", RULE = "#D5DCE6", SUB = "#44546A";
+    const F = 'Inter, Archivo, "Helvetica Neue", Arial, sans-serif';
     const t = totals(i);
     const lines = i.lines.filter((l) => l.v.trim() || l.p);
-    const year = (fromIso(i.iss) || today()).getFullYear();
-    const C = { day: M, venue: M + 150 };
     const pages = [];
     let c = null;
-    const f = (spec, st) => { c.font = spec; try { c.fontStretch = st || "normal"; } catch (e){} };
-    const tx = (s, x, y, spec, col, al, st) => { f(spec, st); c.fillStyle = col || INK; c.textAlign = al || "left"; c.textBaseline = "alphabetic"; c.fillText(s, x, y); return c.measureText(s).width; };
-    const wid = (s, spec, st) => { f(spec, st); return c.measureText(s).width; };
-    const fit = (s, max, spec, st) => {
-      s = String(s || ""); f(spec, st);
+    const f = (spec) => { c.font = spec; try { c.fontStretch = "normal"; } catch (e){} };
+    const tx = (s, x, y, spec, col, al) => { f(spec); c.fillStyle = col || INK; c.textAlign = al || "left"; c.textBaseline = "alphabetic"; c.fillText(String(s), x, y); return c.measureText(String(s)).width; };
+    const wid = (s, spec) => { f(spec); return c.measureText(String(s)).width; };
+    const fit = (s, max, spec) => {
+      s = String(s || ""); f(spec);
       if (c.measureText(s).width <= max) return s;
       while (s.length > 1 && c.measureText(s + "…").width > max) s = s.slice(0, -1);
       return s + "…";
     };
-    const rule = (x1, y1, x2, y2, w, col) => { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.lineWidth = w; c.strokeStyle = col || INK; c.stroke(); };
-    function hl(x, base, w, size){
-      const g = c.createLinearGradient(x - 5, 0, x + w + 5, 0), e = Math.min(0.45, 5 / (w + 10));
-      g.addColorStop(0, "rgba(255,224,60,0)"); g.addColorStop(e, "rgba(255,224,60,.78)");
-      g.addColorStop(1 - e, "rgba(255,216,40,.72)"); g.addColorStop(1, "rgba(255,224,60,0)");
-      c.fillStyle = g; c.fillRect(x - 5, base - size * 0.5, w + 10, size * 0.62);
-    }
-    function price(v, xr, base, size, wt){
-      const kw = tx("Kč", xr, base, `700 ${Math.round(size * 0.46)}px ${SANS}`, INK, "right", "condensed");
-      tx(money(v), xr - kw - 6, base, `${wt || 800} ${size}px ${STEN}`, INK, "right");
-    }
-    function ringAt(cx, cy, r, fill){
-      c.save();
-      c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
-      if (fill >= 1){ c.fillStyle = DESK; c.fill(); }
-      else {
-        if (fill > 0){ c.save(); c.clip(); c.fillStyle = DESK; c.fillRect(cx - r - 2, cy - r - 2, r + 2, 2 * r + 4); c.restore(); }
-        c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.lineWidth = 1.6; c.strokeStyle = "rgba(29,27,24,.45)"; c.stroke();
-      }
-      c.restore();
-    }
-    function stamp(cx, cy, r){
-      const u = r / 104;
-      c.save(); c.translate(cx, cy); c.rotate(-14 * Math.PI / 180);
-      c.globalAlpha = 0.8; c.globalCompositeOperation = "multiply";
-      c.strokeStyle = RED; c.fillStyle = RED;
-      c.lineWidth = 5 * u; c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.stroke();
-      c.lineWidth = 2.5 * u; c.beginPath(); c.arc(0, 0, 66 * u, 0, Math.PI * 2); c.stroke();
-      f(`800 ${21 * u}px ${STEN}`); c.textAlign = "left"; c.textBaseline = "alphabetic";
-      const chars = Array.from("NEPLÁTCE DPH ★ FAKTURA ★ " + year + " ★ ");
-      const ws = chars.map((ch) => c.measureText(ch).width), tot = ws.reduce((a, b) => a + b, 0);
-      const rr = 82 * u, gap = (2 * Math.PI * rr - tot) / chars.length;
-      let a = -0.6;
-      chars.forEach((ch, k) => { c.save(); c.rotate(a + ws[k] / 2 / rr); c.fillText(ch, -ws[k] / 2, -rr); c.restore(); a += (ws[k] + gap) / rr; });
-      f(`800 ${44 * u}px ${STEN}`); c.textAlign = "center"; c.fillText("OSVČ", 0, 16 * u);
-      c.restore();
-    }
-    function paidStamp(cx, cy, date){
-      c.save(); c.translate(cx, cy); c.rotate(-8 * Math.PI / 180);
-      c.globalAlpha = 0.88; c.globalCompositeOperation = "multiply";
-      f(`900 56px ${STEN}`);
-      const w = c.measureText("ZAPLACENO").width + 40, h = 104;
-      c.strokeStyle = RED; c.lineWidth = 4; c.strokeRect(-w / 2, -h / 2, w, h);
-      c.lineWidth = 1.5; c.strokeRect(-w / 2 + 7, -h / 2 + 7, w - 14, h - 14);
-      c.fillStyle = RED; c.textAlign = "center"; c.fillText("ZAPLACENO", 0, 10);
-      f(`700 21px ${SANS}`); c.fillText(date, 0, 38);
-      c.restore();
-    }
+    const box = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+    const caps = (s, x, y, col) => { f(`700 11px ${F}`); c.fillStyle = col; c.textAlign = "left"; let cx = x; for (const ch of s){ c.fillText(ch, cx, y); cx += c.measureText(ch).width + 0.9; } };
     function newPage(){
       const cv = document.createElement("canvas");
       cv.width = Math.round(W * K); cv.height = Math.round(H * K);
       c = cv.getContext("2d"); c.scale(K, K);
-      if (white){ c.fillStyle = "#fff"; c.fillRect(0, 0, W, H); }
-      else {
-        const g = c.createLinearGradient(0, 0, 0, H);
-        g.addColorStop(0, "#EFDFB5"); g.addColorStop(0.5, "#E8D4A3"); g.addColorStop(1, "#E1C990");
-        c.fillStyle = g; c.fillRect(0, 0, W, H);
-      }
-      const CUT = 64;
-      c.fillStyle = "#fff"; c.beginPath(); c.moveTo(W - CUT, 0); c.lineTo(W, 0); c.lineTo(W, CUT); c.closePath(); c.fill();
-      c.fillStyle = white ? "#E4E4E4" : "#CDB27C"; c.beginPath(); c.moveTo(W - CUT, 0); c.lineTo(W, CUT); c.lineTo(W - CUT, CUT); c.closePath(); c.fill();
+      box(0, 0, W, H, "#FFFFFF");
+      box(0, 0, 14, H, NAVY);
       pages.push(cv);
     }
+    // table columns: date, description, quantity, amount
+    const COL = { dt: L + 10, desc: L + 80, qty: R - 140, amt: R - 10 };
     function thead(y){
-      const sp = `700 19px ${SANS}`;
-      tx("Den", C.day, y, sp, INK, "left", "condensed");
-      tx("Místo / popis", C.venue, y, sp, INK, "left", "condensed");
-      tx("Cena", R, y, sp, INK, "right", "condensed");
-      rule(M, y + 12, R, y + 12, 2);
-      return y + 12;
+      box(L, y, R - L, 34, NAVY);
+      const sp = `700 13px ${F}`;
+      tx("Datum", COL.dt, y + 22, sp, "#FFFFFF");
+      tx("Označení dodávky", COL.desc, y + 22, sp, "#FFFFFF");
+      tx("Množství", COL.qty, y + 22, sp, "#FFFFFF", "right");
+      tx("Celkem Kč", COL.amt, y + 22, sp, "#FFFFFF", "right");
+      return y + 34;
     }
-    const RH = lines.length <= 12 ? 64 : 54, sc = RH / 64;
-    function row(l, top){
-      const base = top + RH * 0.64;
-      if (l.dt){
-        tx(wdOf(l.dt), C.day, base, `700 ${Math.round(18 * sc)}px ${SANS}`, SOFT, "left", "condensed");
-        tx(dm(l.dt), C.day + 38 * sc, base, `800 ${Math.round(34 * sc)}px ${STEN}`);
-      }
-      if (l.k === "i"){
-        const sp = `500 ${Math.round(24 * sc)}px ${SANS}`;
-        tx(fit(l.v, R - 240 - C.venue, sp, "semi-condensed"), C.venue, base, sp, INK, "left", "semi-condensed");
-      } else {
-        const vs = Math.round(28 * hd.hs * sc), sp = `700 ${vs}px ${HAND}`, vt = fit(l.v, R - 240 - C.venue, sp);
-        if (vt.trim()){ hl(C.venue, base, wid(vt, sp), vs); tx(vt, C.venue, base, sp); }
-      }
-      price(linePrice(l), R, base, Math.round(32 * sc));
-      rule(M, top + RH, R, top + RH, 1, RULE);
+    const RH = 36;
+    function row(l, y){
+      const sp = `400 13px ${F}`;
+      if (l.dt){ const d = fromIso(l.dt); tx(d.getDate() + ". " + (d.getMonth() + 1) + ".", COL.dt, y + 23, sp); }
+      tx(fit(l.v, COL.qty - 90 - COL.desc, sp), COL.desc, y + 23, sp);
+      tx("1", COL.qty, y + 23, sp, INK, "right");
+      tx(money(linePrice(l)) + (Number.isInteger(linePrice(l)) ? ",00" : ""), COL.amt, y + 23, sp, INK, "right");
+      box(L, y + RH - 1, R - L, 1, RULE);
     }
-    // the total sits at the foot of the page, with the QR code and IBAN under it when there are any
-    function foot(y){
-      const code = spaydOf(i, t), a = accInfo(), qs = 216;
-      const iban = S.acc && !/^CZ/i.test(S.acc.replace(/\s/g, "")) && a && a.iban ? Pay.groupIban(a.iban) : "";
-      const totH = 92, below = code ? qs + 76 : iban ? 56 : 0;
-      const fy = Math.max(y + 40, H - 72 - totH - below);
-      rule(M, fy, R, fy, 3);
-      const b = fy + 62;
-      tx("Celkem k úhradě", M, b, `800 34px ${SANS}`, INK, "left", "condensed");
-      price(t.p, R, b, 58, 900);
-      const qy = fy + totH + 6;
-      let px = M;
+    function party(label, p, x, y, w, extra){
+      caps(label, x, y, NAVY);
+      y += 24;
+      tx(fit(p.n, w, `700 16px ${F}`), x, y, `700 16px ${F}`); y += 21;
+      const sp = `400 13px ${F}`;
+      [p.a1, p.a2].filter(Boolean).forEach((s) => { tx(fit(s, w, sp), x, y, sp); y += 19; });
+      y += 6;
+      if (p.ico){ tx("IČO: " + p.ico, x, y, sp); y += 19; }
+      if (p.dic){ tx("DIČ: " + p.dic, x, y, sp); y += 19; }
+      (extra || []).forEach((s, k) => { if (k === 0) y += 6; tx(fit(s, w, sp), x, y, sp); y += 19; });
+      return y;
+    }
+    // the total bar and the payment foot, at the bottom of the last page
+    const FOOT = 190;
+    function foot(yAfterRows){
+      const by = Math.max(yAfterRows + 24, H - 48 - FOOT);
+      const label = "Celkem k úhradě", amt = money(t.p) + (Number.isInteger(t.p) ? ",00" : "") + " Kč";
+      const w = wid(label, `600 13px ${F}`) + 32 + wid(amt, `800 24px ${F}`) + 40;
+      box(R - w, by, w, 50, NAVY);
+      tx(label, R - w + 20, by + 31, `600 13px ${F}`, "#FFFFFF");
+      tx(amt, R - 20, by + 34, `800 24px ${F}`, "#FFFFFF", "right");
+      const code = spaydOf(i, t), a = accInfo();
       if (code){
-        const q = QR.encode(code), ms = qs / q.size;
+        const q = QR.encode(code), qs = 96, ms = qs / q.size, qx = R - qs, qy = H - 48 - qs;
         c.fillStyle = INK;
-        for (let yy = 0; yy < q.size; yy++) for (let xx = 0; xx < q.size; xx++) if (q.get(xx, yy)) c.fillRect(M + xx * ms, qy + yy * ms, ms + 0.4, ms + 0.4);
-        tx("QR Platba", M, qy + qs + 30, `700 19px ${SANS}`, SOFT, "left", "condensed");
-        px = M + qs + 48;
+        for (let yy = 0; yy < q.size; yy++) for (let xx = 0; xx < q.size; xx++) if (q.get(xx, yy)) c.fillRect(qx + xx * ms, qy + yy * ms, ms + 0.3, ms + 0.3);
       }
-      if (iban){
-        tx("IBAN", px, qy + 26, `700 19px ${SANS}`, SOFT, "left", "condensed");
-        tx(iban, px + 70, qy + 26, `600 24px ${SANS}`);
-      }
+      const notes = [];
+      if (S.acc && a && a.iban) notes.push("IBAN " + Pay.groupIban(a.iban));
+      notes.push("Nejsem plátce DPH. Fyzická osoba zapsaná v živnostenském rejstříku.");
+      if (S.office) notes.push("Evidující úřad: " + S.office + ".");
+      let ny = H - 48 - (notes.length - 1) * 18;
+      notes.forEach((s) => { tx(fit(s, R - L - 120, `400 12px ${F}`), L, ny, `400 12px ${F}`); ny += 18; });
     }
 
-    // first page: head, parties, dates
+    // first page: heading, parties, dates strip, subject
     newPage();
-    const numT = i.num || "—", bh = 104, by = 84;
-    const LB = Math.max(90, wid("Faktura", `700 20px ${SANS}`, "condensed") + 30);
-    const bw = LB + wid(numT, `800 88px ${STEN}`) + 40, bx = R - bw;
-    c.lineWidth = 3; c.strokeStyle = INK; c.strokeRect(bx, by, bw, bh); rule(bx + LB, by, bx + LB, by + bh, 3);
-    tx("Faktura", bx + 14, by + 32, `700 20px ${SANS}`, INK, "left", "condensed");
-    tx("č.", bx + 14, by + bh - 14, `700 20px ${SANS}`, INK, "left", "condensed");
-    tx(numT, bx + bw - 20, by + bh - 14, `800 88px ${STEN}`, INK, "right");
-    tx("Faktura", M, 112, `700 28px ${SANS}`, INK, "left", "semi-condensed");
-    let psz = 62;
-    while (psz > 38 && wid(period(i), `900 ${psz}px ${SANS}`, "extra-condensed") > bx - M - 30) psz -= 2;
-    tx(fit(period(i), bx - M - 30, `900 ${psz}px ${SANS}`, "extra-condensed"), M, 180, `900 ${psz}px ${SANS}`, INK, "left", "extra-condensed");
-    rule(M, 214, R, 214, 4);
-
-    let y = 262;
-    const half = (R - M) / 2, X2 = M + half + 24, cw = half - 40;
-    tx("Dodavatel", M, y, `700 19px ${SANS}`, SOFT, "left", "condensed");
-    tx("Odběratel", X2, y, `700 19px ${SANS}`, SOFT, "left", "condensed");
-    let ys = y + 44;
-    tx(fit(S.name, cw, `800 32px ${SANS}`, "semi-condensed"), M, ys, `800 32px ${SANS}`, INK, "left", "semi-condensed"); ys += 38;
-    [S.a1, S.a2].filter(Boolean).forEach((s) => { tx(fit(s, cw, `400 23px ${SANS}`), M, ys, `400 23px ${SANS}`); ys += 31; });
-    if (S.ico){ tx("IČO " + S.ico, M, ys, `400 23px ${SANS}`); ys += 31; }
-    ys += 6;
-    tx("Dodavatel není plátcem DPH.", M, ys, `700 21px ${SANS}`); ys += 28;
-    tx(fit("Fyzická osoba zapsaná v živnostenském rejstříku.", cw, `400 20px ${SANS}`), M, ys, `400 20px ${SANS}`, SOFT); ys += 28;
-    if (S.office){ tx(fit("Evidující úřad: " + S.office + ".", cw, `400 20px ${SANS}`), M, ys, `400 20px ${SANS}`, SOFT); ys += 28; }
-    const contact = [S.email, S.phone].filter(Boolean).join("  ·  ");
-    if (contact){ ys += 4; tx(fit(contact, cw, `400 20px ${SANS}`), M, ys, `400 20px ${SANS}`, SOFT); ys += 28; }
-    let yc = y + 44;
-    tx(fit(i.cli.n, cw, `800 32px ${SANS}`, "semi-condensed"), X2, yc, `800 32px ${SANS}`, INK, "left", "semi-condensed"); yc += 38;
-    [i.cli.a1, i.cli.a2].filter(Boolean).forEach((s) => { tx(fit(s, cw, `400 23px ${SANS}`), X2, yc, `400 23px ${SANS}`); yc += 31; });
-    if (i.cli.ico){ tx(fit("IČO " + i.cli.ico, cw, `400 23px ${SANS}`), X2, yc, `400 23px ${SANS}`); yc += 31; }
-    if (i.cli.dic){ tx(fit("DIČ " + i.cli.dic, cw, `400 23px ${SANS}`), X2, yc, `400 23px ${SANS}`); yc += 31; }
-    y = Math.max(ys, yc) + 4;
-    rule(M + half, 236, M + half, y, 1, RULE);
-    rule(M, y, R, y, 1.5);
-    const accTxt = S.acc.trim(), accIban = /^CZ/i.test(accTxt.replace(/\s/g, ""));
-    const mh = accTxt ? 122 : 96, mw = (R - M) / 3;
-    [["Datum vystavení", dmy(i.iss), 1], ["Datum splatnosti", dmy(i.due), 1], ["Forma úhrady", "Převodem", 0]].forEach((m, k) => {
-      const x = M + k * mw + (k ? 18 : 0);
-      if (k) rule(M + k * mw, y, M + k * mw, y + mh, 1, RULE);
-      tx(m[0], x, y + 32, `700 19px ${SANS}`, SOFT, "left", "condensed");
-      if (m[2]) tx(fit(m[1], mw - 30, `800 40px ${STEN}`), x, y + 78, `800 40px ${STEN}`);
-      else {
-        tx(m[1], x, y + 76, `800 30px ${SANS}`, INK, "left", "condensed");
-        if (accTxt){
-          const lab = accIban ? "IBAN" : "č. ú.", lw = tx(lab, x, y + 108, `700 18px ${SANS}`, SOFT, "left", "condensed") + 8;
-          const val = accIban ? Pay.groupIban(accTxt.replace(/\s/g, "").toUpperCase()) : accTxt;
-          tx(fit(val, mw - 30 - lw, `600 21px ${SANS}`), x + lw, y + 108, `600 21px ${SANS}`);
-        }
-      }
+    tx("FAKTURA", L, 92, `800 36px ${F}`, NAVY);
+    tx("Číslo", R, 70, `400 11px ${F}`, GREY, "right");
+    tx(i.num || "—", R, 96, `700 20px ${F}`, INK, "right");
+    const colW = (R - L - 28) / 2;
+    const contact = [S.email, S.phone].filter(Boolean);
+    const y1 = party("DODAVATEL", { n: S.name, a1: S.a1, a2: S.a2, ico: S.ico }, L, 140, colW, contact);
+    const y2 = party("ODBĚRATEL", i.cli, L + colW + 28, 140, colW);
+    let y = Math.max(y1, y2) + 14;
+    box(L, y, R - L, 58, TINT);
+    const accTxt = S.acc.trim() || "—";
+    const cells = [["Vystaveno", dmy(i.iss)], ["Splatnost", dmy(i.due)], ["Úhrada", "převodem"], ["Účet", accTxt]];
+    const cw = (R - L - 32) / 4;
+    cells.forEach((m, k) => {
+      const x = L + 16 + k * cw;
+      tx(m[0], x, y + 22, `400 11px ${F}`, SUB);
+      let sz = 13;
+      while (sz > 10 && wid(m[1], `700 ${sz}px ${F}`) > cw - 10) sz--;
+      tx(fit(m[1], cw - 10, `700 ${sz}px ${F}`), x, y + 42, `700 ${sz}px ${F}`);
     });
-    y += mh; rule(M, y, R, y, 1.5);
-    y += 46;
+    y += 58 + 30;
     if (i.sub.trim()){
-      tx("Předmět plnění", M, y, `700 19px ${SANS}`, SOFT, "left", "condensed");
-      tx(fit(i.sub, R - M - 170, `600 25px ${SANS}`, "semi-condensed"), M + 170, y, `600 25px ${SANS}`, INK, "left", "semi-condensed");
-      y += 46;
+      const lw = tx("Předmět plnění: ", L, y, `400 13px ${F}`, GREY);
+      tx(fit(i.sub, R - L - lw, `400 13px ${F}`), L + lw, y, `400 13px ${F}`);
+      y += 26;
     }
-
-    // lines, spilling onto more pages when needed
-    let y0 = thead(y + 6), idx = 0;
+    let y0 = thead(y + 4), idx = 0;
     for (;;){
       const rem = lines.length - idx;
-      const capF = Math.floor((H - 502 - y0) / RH), capN = Math.floor((H - 90 - y0) / RH);
+      const capF = Math.floor((H - 48 - FOOT - 24 - y0) / RH), capN = Math.floor((H - 60 - y0) / RH);
       if (rem <= capF){ lines.slice(idx).forEach((l, k) => row(l, y0 + k * RH)); foot(y0 + rem * RH); break; }
       const take = Math.max(1, rem <= capN ? rem - 1 : capN);
       lines.slice(idx, idx + take).forEach((l, k) => row(l, y0 + k * RH));
       idx += take;
       newPage();
-      tx("Faktura č. " + (i.num || "") + " – pokračování", M, 120, `800 34px ${SANS}`, INK, "left", "condensed");
-      rule(M, 150, R, 150, 3);
-      y0 = thead(206);
+      tx("Faktura č. " + (i.num || "") + " – pokračování", L, 92, `700 18px ${F}`, NAVY);
+      y0 = thead(120);
     }
     if (pages.length > 1) pages.forEach((cv, k) => {
       c = cv.getContext("2d");
-      tx("Strana " + (k + 1) + " / " + pages.length, M, H - 34, `600 18px ${SANS}`, SOFT, "left", "condensed");
+      tx("Strana " + (k + 1) + " / " + pages.length, R, 34, `400 11px ${F}`, GREY, "right");
     });
     return pages;
   }
@@ -1510,7 +1424,7 @@ var Pay = (function (){
     if (draft === i.id || exampleId === i.id) changed();
     const b = $("pdfBtn"), h = hand();
     b.disabled = true; msg("Making the PDF…");
-    loadFonts(['900 40px "Archivo"', '400 40px "Archivo"', '800 40px "Big Shoulders Stencil"', "700 30px " + h.fam])
+    loadFonts(['400 13px "Inter"', '600 13px "Inter"', '700 13px "Inter"', '800 24px "Inter"'])
       .then(() => Promise.all(drawInvoice(i).map((cv) => canvasJpeg(cv).then((jpeg) => ({ jpeg, w: cv.width, h: cv.height })))))
       .then((imgs) => savePdf(buildPdf(imgs), "Faktura " + (i.num || "bez cisla") + ".pdf"))
       .then(() => msg("Faktura " + i.num + " is ready." + (accInfo() && accInfo().iban ? "" : " It has no QR payment code until you add your bank account.")),
